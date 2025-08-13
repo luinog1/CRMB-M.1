@@ -1,0 +1,16 @@
+version: 1.0
+devLoadAlwaysFiles:
+  - docs/prd-frontend.md
+  - docs/prd-backend.md
+  - docs/architecture.md
+  - docs/coding-standards.md
+  - docs/technical-preferences.md
+agentSettings:
+  defaultContextSize: 4000
+  maxTokensResponse: 1000
+project:
+  name: "CRMB Streaming WebApp"
+  platform: "CRUMBLE"
+  type: "Full-stack media center web application"
+  target: "macOS (Chrome/Safari optimized)"
+  architecture: "React frontend + Node.js backend with Stremio compatibility"
