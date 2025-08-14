@@ -1,0 +1,159 @@
+/* Base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #f5f5f7;
+  color: #1d1d1f;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+/* Navigation styles */
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-logo a {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1d1d1f;
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-link {
+  color: #1d1d1f;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #0071e3;
+}
+
+.main-content {
+  padding-top: 20px;
+}
+
+/* Home page styles */
+.home-page {
+  padding: 20px;
+}
+
+.hero-banner {
+  background-color: #000;
+  color: #fff;
+  padding: 60px 20px;
+  text-align: center;
+  border-radius: 12px;
+  margin-bottom: 40px;
+}
+
+.hero-banner h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.search-container {
+  max-width: 600px;
+  margin: 30px auto 0;
+  display: flex;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  font-size: 1rem;
+}
+
+.search-button {
+  background-color: #0071e3;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  font-size: 1rem;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.content-section {
+  margin-bottom: 40px;
+}
+
+.content-section h2 {
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.carousel {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Search page styles */
+.search-page {
+  padding: 20px;
+}
+
+.search-results {
+  margin-top: 30px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Detail page styles */
+.detail-page {
+  padding: 20px;
+}
+
+.content-details {
+  margin-top: 30px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Library page styles */
+.library-page {
+  padding: 20px;
+}
+
+.library-content {
+  margin-top: 30px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
