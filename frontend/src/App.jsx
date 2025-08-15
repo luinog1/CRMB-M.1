@@ -1,30 +1,46 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import React from 'react'
+import { AppProvider, useApp } from './context/AppContext'
+import Sidebar from './components/Sidebar'
+import Header from './components/Header'
+import HomePage from './pages/HomePage'
+import LibraryPage from './pages/LibraryPage'
+import SettingsPage from './pages/SettingsPage'
 import './App.css'
 
-// Import components
-import Navigation from './components/Navigation'
+function AppContent() {
+  const { activeTab } = useApp()
 
-// Import pages
-import Home from './pages/Home'
-import Search from './pages/Search'
-import Detail from './pages/Detail'
-import Library from './pages/Library'
+  const renderContent = () => {
+    switch(activeTab) {
+      case 'home':
+        return <HomePage />
+      case 'library':
+        return <LibraryPage />
+      case 'settings':
+        return <SettingsPage />
+      default:
+        return <HomePage />
+    }
+  }
+
+  return (
+    <div className="app">
+      <Sidebar />
+      <div className="main-container">
+        <Header />
+        <main className="content">
+          {renderContent()}
+        </main>
+      </div>
+    </div>
+  )
+}
 
 function App() {
   return (
-    <Router>
-      <div className="app">
-        <Navigation />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/detail/:id" element={<Detail />} />
-            <Route path="/library" element={<Library />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   )
 }
 
