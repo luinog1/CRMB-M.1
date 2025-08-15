@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import ApiService from '../services/api';
 
 const Header = () => {
-  const { searchQuery, setSearchQuery, activeTab } = useApp();
+  const { searchQuery, setSearchQuery, activeTab, setActiveTab } = useApp();
 
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
@@ -14,15 +14,22 @@ const Header = () => {
         const healthCheck = await ApiService.checkHealth();
         console.log('Backend health:', healthCheck);
         
-        // Attempt to search (will return 501 for now)
+        // Attempt to search
         try {
           const searchResults = await ApiService.searchContent(searchQuery.trim());
           console.log('Search results:', searchResults);
+          // Navigate to search results page (would be implemented in a real app)
+          // For now, we'll just update the active tab
+          if (activeTab !== 'search') {
+            setActiveTab('search');
+          }
         } catch (searchError) {
-          console.log('Search endpoint not implemented yet:', searchError.message);
+          console.error('Search failed:', searchError.message);
+          alert('Search failed: ' + searchError.message);
         }
       } catch (error) {
         console.error('Backend connection failed:', error);
+        alert('Backend connection failed. Please check your connection and try again.');
       }
     }
   };

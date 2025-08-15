@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
@@ -18,12 +18,24 @@ export const AppProvider = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
-  const [settings, setSettings] = useState({
-    autoPlayNext: true,
-    skipIntro: false,
-    videoQuality: 'Full HD (1080p)',
-    subtitleLanguage: 'English'
+  // Initialize settings from localStorage if available
+  const [settings, setSettings] = useState(() => {
+    const savedSettings = localStorage.getItem('app_settings');
+    return savedSettings ? JSON.parse(savedSettings) : {
+      autoPlayNext: true,
+      skipIntro: false,
+      videoQuality: 'Full HD (1080p)',
+      subtitleLanguage: 'English',
+      tmdbApiKey: localStorage.getItem('tmdb_api_key') || '',
+      traktClientId: localStorage.getItem('trakt_client_id') || '',
+      mdblistApiKey: localStorage.getItem('mdblist_api_key') || ''
+    };
   });
+  
+  // Save settings to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('app_settings', JSON.stringify(settings));
+  }, [settings]);
 
   const toggleSetting = (settingKey) => {
     setSettings(prev => ({
@@ -36,6 +48,13 @@ export const AppProvider = ({ children }) => {
     setSettings(prev => ({
       ...prev,
       [settingKey]: value
+    }));
+  };
+  
+  const updateSettings = (newSettings) => {
+    setSettings(prev => ({
+      ...prev,
+      ...newSettings
     }));
   };
 
@@ -52,7 +71,8 @@ export const AppProvider = ({ children }) => {
     setSidebarExpanded,
     settings,
     toggleSetting,
-    updateSetting
+    updateSetting,
+    updateSettings
   };
 
   return (

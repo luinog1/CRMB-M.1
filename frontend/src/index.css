@@ -13,6 +13,39 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Loading indicators */
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  width: 100%;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* No content messages */
+.no-content-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  width: 100%;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0 20px;
+  background-color: rgba(26, 32, 44, 0.4);
+  border-radius: 8px;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

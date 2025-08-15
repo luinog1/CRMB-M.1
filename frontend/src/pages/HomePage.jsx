@@ -1,41 +1,97 @@
 import React, { useEffect, useState } from 'react';
 import MovieCard from '../components/MovieCard';
 import ApiService from '../services/api';
+import { useApp } from '../context/AppContext';
 
 const HomePage = () => {
+  const { settings } = useApp();
   const [backendStatus, setBackendStatus] = useState('checking');
   const [apiError, setApiError] = useState(null);
+  const [trendingMovies, setTrendingMovies] = useState([]);
+  const [newReleases, setNewReleases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Test backend connectivity on component mount
+  // Load content and check backend connectivity on component mount or when settings change
   useEffect(() => {
-    const testBackendConnection = async () => {
+    const fetchContent = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      
+      // Check if TMDB API key is available
+      if (!settings?.tmdbApiKey) {
+        setApiError('TMDB API key is missing. Please add a valid API key in Settings.');
+        setIsLoading(false);
+        return;
+      }
+      
       try {
-        const healthCheck = await ApiService.checkHealth();
-        console.log('Backend health check successful:', healthCheck);
+        // Set TMDB API key from settings
+        ApiService.setApiKey('tmdb', settings.tmdbApiKey);
+        
+        // Check backend health
+        const response = await ApiService.checkHealth();
+        console.log('Backend health check:', response);
         setBackendStatus('connected');
         
-        // Test trending endpoint
+        // Fetch trending content
         try {
-          await ApiService.getTrending();
-        } catch (error) {
-          console.log('Trending endpoint not implemented yet (expected):', error.message);
+          const trending = await ApiService.getTrending();
+          console.log('Trending:', trending);
+          if (trending && trending.results) {
+            setTrendingMovies(trending.results.map(movie => ({
+              id: movie.id,
+              title: movie.title || movie.name,
+              year: movie.release_date ? new Date(movie.release_date).getFullYear() : 
+                    movie.first_air_date ? new Date(movie.first_air_date).getFullYear() : '',
+              poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+              backdrop: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
+              rating: movie.vote_average ? movie.vote_average.toFixed(1) : null,
+              genre: movie.media_type || 'movie',
+              overview: movie.overview,
+              added: new Date().toISOString()
+            })));
+          }
+        } catch (trendingError) {
+          console.error('Failed to fetch trending:', trendingError.message);
+          if (trendingError.message.includes('401')) {
+            setApiError('TMDB API key is invalid. Please add a valid API key in Settings.');
+          }
         }
         
-        // Test new releases endpoint
+        // Fetch new releases
         try {
-          await ApiService.getNewReleases();
-        } catch (error) {
-          console.log('New releases endpoint not implemented yet (expected):', error.message);
+          const releases = await ApiService.getNewReleases();
+          console.log('New Releases:', releases);
+          if (releases && releases.results) {
+            setNewReleases(releases.results.map(movie => ({
+              id: movie.id,
+              title: movie.title || movie.name,
+              year: movie.release_date ? new Date(movie.release_date).getFullYear() : '',
+              poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+              backdrop: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : null,
+              rating: movie.vote_average ? movie.vote_average.toFixed(1) : null,
+              genre: 'movie',
+              overview: movie.overview,
+              added: new Date().toISOString()
+            })));
+          }
+        } catch (newReleasesError) {
+          console.error('Failed to fetch new releases:', newReleasesError.message);
+          if (!apiError && newReleasesError.message.includes('401')) {
+            setApiError('TMDB API key is invalid. Please add a valid API key in Settings.');
+          }
         }
       } catch (error) {
         console.error('Backend connection failed:', error);
         setBackendStatus('disconnected');
         setApiError(error.message);
+      } finally {
+        setIsLoading(false);
       }
     };
-
-    testBackendConnection();
-  }, []);
+    
+    fetchContent();
+  }, [settings?.tmdbApiKey]);
 
   // Mock data for featured movie
   const featuredMovie = {
@@ -139,9 +195,17 @@ const HomePage = () => {
           </div>
           <div className="content-carousel">
             <div className="carousel-container">
-              {mockMovies.map(movie => (
-                <MovieCard key={movie.id} movie={movie} />
-              ))}
+              {isLoading ? (
+                <div className="loading-indicator">Loading trending content...</div>
+              ) : apiError ? (
+                <div className="no-content-message">{apiError}</div>
+              ) : trendingMovies.length > 0 ? (
+                trendingMovies.map(movie => (
+                  <MovieCard key={`trending-${movie.id}`} movie={movie} />
+                ))
+              ) : (
+                <div className="no-content-message">No trending content found. Try again later.</div>
+              )}
             </div>
           </div>
         </section>
@@ -154,14 +218,22 @@ const HomePage = () => {
           </div>
           <div className="content-carousel">
             <div className="carousel-container">
-              {mockMovies.slice().reverse().map(movie => (
-                <MovieCard key={`new-${movie.id}`} movie={movie} />
-              ))}
+              {isLoading ? (
+                <div className="loading-indicator">Loading new releases...</div>
+              ) : apiError ? (
+                <div className="no-content-message">{apiError}</div>
+              ) : newReleases.length > 0 ? (
+                newReleases.map(movie => (
+                  <MovieCard key={`new-${movie.id}`} movie={movie} />
+                ))
+              ) : (
+                <div className="no-content-message">No new releases found. Try again later.</div>
+              )}
             </div>
           </div>
         </section>
 
-        {/* Popular Section */}
+        {/* Popular Section - Using trending data for now */}
         <section className="content-section">
           <div className="section-header">
             <h2 className="section-title">Popular Movies</h2>
@@ -169,9 +241,17 @@ const HomePage = () => {
           </div>
           <div className="content-carousel">
             <div className="carousel-container">
-              {mockMovies.slice(1, 4).map(movie => (
-                <MovieCard key={`popular-${movie.id}`} movie={movie} />
-              ))}
+              {isLoading ? (
+                <div className="loading-indicator">Loading popular movies...</div>
+              ) : apiError ? (
+                <div className="no-content-message">{apiError}</div>
+              ) : trendingMovies.length > 0 ? (
+                trendingMovies.slice(0, 5).map(movie => (
+                  <MovieCard key={`popular-${movie.id}`} movie={movie} />
+                ))
+              ) : (
+                <div className="no-content-message">No popular movies found. Try again later.</div>
+              )}
             </div>
           </div>
         </section>

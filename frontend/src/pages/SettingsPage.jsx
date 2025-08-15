@@ -71,6 +71,15 @@ const SettingsPage = () => {
 
   const handleSelectChange = (key, value) => {
     updateSettings({ [key]: value });
+    
+    // Update API keys in ApiService when changed
+    if (key === 'tmdbApiKey') {
+      ApiService.setApiKey('tmdb', value);
+    } else if (key === 'traktClientId') {
+      ApiService.setApiKey('trakt_client_id', value);
+    } else if (key === 'mdblistApiKey') {
+      ApiService.setApiKey('mdblist', value);
+    }
   };
 
   const toggleExternalPlayer = (playerId) => {
