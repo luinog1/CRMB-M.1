@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = '/api';
 
 class ApiService {
   constructor() {
@@ -116,6 +116,26 @@ class ApiService {
   // Stremio endpoints
   async getStreamingSources(type, id) {
     return this.request(`/stremio/sources/${type}/${id}`);
+  }
+  
+  async getStremioAddons() {
+    return this.request('/stremio/addons');
+  }
+  
+  async getStremioMetadata(type, imdbId) {
+    return this.request(`/stremio/meta/${type}/${imdbId}`);
+  }
+  
+  async getStremioMetadataByTmdb(type, tmdbId) {
+    return this.request(`/stremio/meta-by-tmdb/${type}/${tmdbId}`);
+  }
+  
+  async getMovieDetails(tmdbId) {
+    return this.request(`/tmdb/movie/${tmdbId}?append_to_response=credits,videos,similar`);
+  }
+  
+  async getTvDetails(tmdbId) {
+    return this.request(`/tmdb/tv/${tmdbId}?append_to_response=credits,videos,similar`);
   }
   
   // External player management

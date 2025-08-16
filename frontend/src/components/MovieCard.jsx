@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const MovieCard = ({ movie, variant = 'default' }) => {
+  const navigate = useNavigate();
+
   const handlePlayClick = (e) => {
     e.stopPropagation();
     // TODO: Implement play functionality
@@ -8,8 +11,9 @@ const MovieCard = ({ movie, variant = 'default' }) => {
   };
 
   const handleCardClick = () => {
-    // TODO: Navigate to detail page
-    console.log('Viewing details for:', movie.title);
+    // Navigate to detail page with movie type and ID
+    const type = movie.genre === 'tv' || movie.media_type === 'tv' ? 'tv' : 'movie';
+    navigate(`/detail/${type}/${movie.id}`);
   };
 
   if (variant === 'library') {

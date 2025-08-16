@@ -1,10 +1,12 @@
 import React from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import HomePage from './pages/HomePage'
 import LibraryPage from './pages/LibraryPage'
 import SettingsPage from './pages/SettingsPage'
+import Detail from './pages/Detail'
 import './App.css'
 
 function AppContent() {
@@ -29,7 +31,10 @@ function AppContent() {
       <div className="main-container">
         <Header />
         <main className="content">
-          {renderContent()}
+          <Routes>
+            <Route path="/" element={renderContent()} />
+            <Route path="/detail/:type/:id" element={<Detail />} />
+          </Routes>
         </main>
       </div>
     </div>
@@ -39,7 +44,9 @@ function AppContent() {
 function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </AppProvider>
   )
 }

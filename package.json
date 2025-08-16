@@ -1,0 +1,28 @@
+{
+  "name": "crmb-m1",
+  "version": "1.0.0",
+  "description": "CRUMBLE Media Discovery Application",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "dev": "concurrently \"cd backend && npm start\" \"cd frontend && npm run dev\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "playwright": "^1.54.2"
+  },
+  "keywords": [
+    "media",
+    "discovery",
+    "stremio",
+    "tmdb",
+    "react",
+    "node"
+  ],
+  "author": "CRMB Team",
+  "license": "MIT"
+}

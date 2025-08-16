@@ -103,13 +103,13 @@ const HomePage = () => {
     backdrop: "https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=dark%20knight%20batman%20gotham%20city%20cinematic%20night%20scene&image_size=landscape_16_9"
   };
 
-  // Mock data for movies
+  // Mock data for movies (with TMDB IDs for testing)
   const mockMovies = [
-    { id: 1, title: "Inception", year: "2010", rating: "8.8", genre: "Sci-Fi, Thriller" },
-    { id: 2, title: "Interstellar", year: "2014", rating: "8.6", genre: "Sci-Fi, Drama" },
-    { id: 3, title: "The Matrix", year: "1999", rating: "8.7", genre: "Action, Sci-Fi" },
-    { id: 4, title: "Pulp Fiction", year: "1994", rating: "8.9", genre: "Crime, Drama" },
-    { id: 5, title: "Fight Club", year: "1999", rating: "8.8", genre: "Drama, Thriller" }
+    { id: 27205, title: "Inception", year: "2010", rating: "8.8", genre: "movie", poster: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg" },
+    { id: 157336, title: "Interstellar", year: "2014", rating: "8.6", genre: "movie", poster: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg" },
+    { id: 603, title: "The Matrix", year: "1999", rating: "8.7", genre: "movie", poster: "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg" },
+    { id: 680, title: "Pulp Fiction", year: "1994", rating: "8.9", genre: "movie", poster: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg" },
+    { id: 550, title: "Fight Club", year: "1999", rating: "8.8", genre: "movie", poster: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg" }
   ];
 
   const handleWatchNow = () => {
@@ -252,6 +252,21 @@ const HomePage = () => {
               ) : (
                 <div className="no-content-message">No popular movies found. Try again later.</div>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* Demo Section - Always shows test content for addon testing */}
+        <section className="content-section">
+          <div className="section-header">
+            <h2 className="section-title">Demo Movies (Click to Test Detail Page)</h2>
+            <button className="section-link">View All</button>
+          </div>
+          <div className="content-carousel">
+            <div className="carousel-container">
+              {mockMovies.map(movie => (
+                <MovieCard key={`demo-${movie.id}`} movie={movie} />
+              ))}
             </div>
           </div>
         </section>

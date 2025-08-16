@@ -6,7 +6,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-TMDB-API-Key', 'X-Trakt-Client-ID', 'X-Trakt-Auth', 'X-MDbList-API-Key']
+}));
 app.use(express.json());
 
 // Health check endpoint
