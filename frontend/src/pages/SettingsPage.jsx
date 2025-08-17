@@ -48,16 +48,27 @@ const SettingsPage = () => {
   const handleInstallAddon = async (addonUrl) => {
     try {
       setIsLoading(true);
-      await ApiService.installAddon(addonUrl);
-      // Reload addons after installation
-      const addonList = await ApiService.getAddons();
-      setAddons(addonList || []);
+      const newAddon = await ApiService.installAddon(addonUrl);
+      setAddons(prevAddons => [...prevAddons, newAddon.addon]);
+      setError(null);
     } catch (error) {
       console.error('Failed to install addon:', error);
-      alert('Failed to install addon: ' + error.message);
+      setError(error.message || 'Failed to install addon. Please check the URL and try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleToggleAddon = (addonId) => {
+    setAddons(prevAddons =>
+      prevAddons.map(addon =>
+        addon.id === addonId ? { ...addon, enabled: !addon.enabled } : addon
+      )
+    );
+  };
+
+  const handleRemoveAddon = (addonId) => {
+    setAddons(prevAddons => prevAddons.filter(addon => addon.id !== addonId));
   };
 
   const getTotalItems = () => {
@@ -166,8 +177,19 @@ const SettingsPage = () => {
                     }}>
                       {addon.enabled ? 'Enabled' : 'Disabled'}
                     </span>
-                    <button className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '12px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                      onClick={() => handleToggleAddon(addon.id)}
+                    >
                       {addon.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                      onClick={() => handleRemoveAddon(addon.id)}
+                    >
+                      Remove
                     </button>
                   </div>
                 </div>

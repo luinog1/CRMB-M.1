@@ -18,6 +18,14 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'CRUMBLE BFF server is running' });
 });
 
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+  res.status(200).json({
+    message: 'Debug endpoint',
+    routes: 'Routes debugging disabled'
+  });
+});
+
 // API Routes
 const apiRoutes = require('./routes');
 app.use('/api', apiRoutes);

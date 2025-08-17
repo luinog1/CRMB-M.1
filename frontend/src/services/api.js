@@ -203,9 +203,15 @@ class ApiService {
 
   // Install and manage addons
   async installAddon(addonUrl) {
+    // Instead of sending an external URL, we now use our own backend addon URL
+    // The addonUrl parameter is kept for backward compatibility but is ignored
+    
+    // Get the backend URL from the current window location
+    const backendUrl = `${window.location.protocol}//${window.location.hostname}:3001/api/stremio`;
+    
     return this.request('/stremio/install-addon', {
       method: 'POST',
-      body: JSON.stringify({ addonUrl })
+      body: JSON.stringify({ addonUrl: backendUrl })
     });
   }
 
@@ -227,15 +233,8 @@ class ApiService {
   
   async getAddons() {
     try {
-      const response = await fetch('/stremio-addons.json');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch addons: ${response.statusText}`);
-      }
-      const data = await response.json();
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid addon data format: expected an array');
-      }
-      return data;
+      const response = await this.request('/stremio/addons');
+      return response.addons || [];
     } catch (error) {
       console.error('Error fetching addon metadata:', error);
       throw new Error(`Failed to load addons: ${error.message}`);
