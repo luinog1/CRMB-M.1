@@ -135,6 +135,22 @@ class ApiService {
     return this.request(`/stremio/meta-by-tmdb/${type}/${tmdbId}`);
   }
 
+  // User library methods
+  async getUserLibrary() {
+    try {
+      // Try to get user library from local storage first
+      const localLibrary = localStorage.getItem('user_library');
+      if (localLibrary) {
+        return JSON.parse(localLibrary);
+      }
+      // If not in local storage, return empty array
+      return [];
+    } catch (error) {
+      console.error('Error fetching user library:', error);
+      return [];
+    }
+  }
+
   // New Stremio catalog endpoints
   async getStremioCatalog(addonId, type, catalogId, options = {}) {
     const { skip = 0, limit = 20, genre, search, sort } = options;
@@ -152,6 +168,22 @@ class ApiService {
     }
     
     return this.request(url);
+  }
+
+  async getAddonCatalog(addonId, type, catalogId) {
+    try {
+      // First check if we have a direct method for this addon
+      if (addonId === 'cinemeta') {
+        // For cinemeta, we can use the stremioCatalog method
+        return this.getStremioCatalog(addonId, type, catalogId);
+      }
+      
+      // For other addons, try to get from the general catalog endpoint
+      return this.request(`/stremio/addon/${addonId}/catalog/${type}/${catalogId}`);
+    } catch (error) {
+      console.error(`Error fetching addon catalog for ${addonId}:`, error);
+      throw new Error(`Failed to load catalog from ${addonId}: ${error.message}`);
+    }
   }
 
   async getStremioSubtitles(type, id, options = {}) {
@@ -181,16 +213,32 @@ class ApiService {
     return this.request(`/stremio/addon/${addonId}/manifest`);
   }
   
+  async syncAddons() {
+    try {
+      // This would typically call a backend endpoint to sync addons
+      // For now, we'll just return the current addons
+      const addons = await this.getAddons();
+      return addons;
+    } catch (error) {
+      console.error('Error syncing addons:', error);
+      throw new Error(`Failed to sync addons: ${error.message}`);
+    }
+  }
+  
   async getAddons() {
     try {
       const response = await fetch('/stremio-addons.json');
       if (!response.ok) {
         throw new Error(`Failed to fetch addons: ${response.statusText}`);
       }
-      return await response.json();
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid addon data format: expected an array');
+      }
+      return data;
     } catch (error) {
       console.error('Error fetching addon metadata:', error);
-      throw error;
+      throw new Error(`Failed to load addons: ${error.message}`);
     }
   }
 

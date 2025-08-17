@@ -79,14 +79,14 @@ body {
 }
 
 .sidebar-logo svg {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   color: var(--button-text-primary);
 }
 
 .sidebar-item {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -117,8 +117,8 @@ body {
 }
 
 .sidebar-item svg {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   color: var(--text-primary);
 }
 
@@ -846,8 +846,8 @@ body {
   }
   
   .sidebar-item svg {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -898,7 +898,7 @@ body {
   }
   
   .sidebar-item svg {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
   }
 }

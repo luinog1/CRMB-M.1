@@ -14,9 +14,10 @@ const SettingsPage = () => {
       try {
         const addonList = await ApiService.getAddons();
         setAddons(addonList || []);
+        setError(null); // Clear any previous errors on success
       } catch (error) {
         console.error('Failed to load addons:', error);
-        setError('Failed to load addons. Please try again later.');
+        setError(error.message || 'Failed to load addons. Please check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -78,7 +79,26 @@ const SettingsPage = () => {
         <p className="page-description">Manage content sources and fetch new content</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message" style={{
+          padding: '12px 16px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid var(--error-color)',
+          borderRadius: '8px',
+          color: 'var(--error-color)',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          {error}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
         <button className="btn btn-secondary" onClick={handleSyncContent}>
@@ -91,7 +111,7 @@ const SettingsPage = () => {
           <svg className="btn-icon" fill="currentColor" viewBox="0 0 24 24">
             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
           </svg>
-          Add Addon
+          Add New Addon
         </button>
       </div>
 
@@ -162,6 +182,9 @@ const SettingsPage = () => {
             <h3 className="empty-state-title">No addons configured</h3>
             <p className="empty-state-description">Add your first addon to start fetching content</p>
             <button className="btn btn-primary" onClick={handleAddAddon}>
+              <svg className="btn-icon" fill="currentColor" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              </svg>
               Add First Addon
             </button>
           </div>
