@@ -28,9 +28,9 @@ function AppContent() {
   return (
     <div className="app">
       <Sidebar />
-      <div className="main-container">
+      <div className="main-content">
         <Header />
-        <main className="content">
+        <main className="content-container">
           <Routes>
             <Route path="/" element={renderContent()} />
             <Route path="/detail/:type/:id" element={<Detail />} />

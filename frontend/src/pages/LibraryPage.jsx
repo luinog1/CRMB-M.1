@@ -1,149 +1,220 @@
-import React from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
 import MovieCard from '../components/MovieCard';
+import ApiService from '../services/api';
+import { useApp } from '../context/AppContext';
 
 const LibraryPage = () => {
-  const { libraryTab, setLibraryTab } = useApp();
+  const { settings } = useApp();
+  const [libraryContent, setLibraryContent] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('collection');
+  const [viewMode, setViewMode] = useState('grid');
 
-  const libraryTabs = ['All', 'Movies', 'TV Shows', 'Watchlist'];
+  useEffect(() => {
+    const loadLibraryContent = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Load library content from addons or local storage
+        const addons = await ApiService.getAddons();
+        if (addons && addons.length > 0) {
+          // Try to load user library from addons
+          const userLibrary = await ApiService.getUserLibrary();
+          if (userLibrary && userLibrary.length > 0) {
+            setLibraryContent(userLibrary);
+          }
+        }
 
-  // Mock library data
-  const libraryItems = [
-    {
-      id: 1,
-      title: "Breaking Bad",
-      year: "2008",
-      genre: "Crime, Drama",
-      rating: "9.5",
-      added: "2 days ago",
-      type: "tv"
-    },
-    {
-      id: 2,
-      title: "The Godfather",
-      year: "1972",
-      genre: "Crime, Drama",
-      rating: "9.2",
-      added: "1 week ago",
-      type: "movie"
-    },
-    {
-      id: 3,
-      title: "Stranger Things",
-      year: "2016",
-      genre: "Drama, Fantasy",
-      rating: "8.7",
-      added: "3 days ago",
-      type: "tv"
-    },
-    {
-      id: 4,
-      title: "Inception",
-      year: "2010",
-      genre: "Sci-Fi, Thriller",
-      rating: "8.8",
-      added: "5 days ago",
-      type: "movie"
-    }
-  ];
+        // Load watchlist and favorites from local storage
+        const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+        const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        
+        setWatchlist(savedWatchlist);
+        setFavorites(savedFavorites);
 
-  const getFilteredItems = () => {
-    switch(libraryTab) {
-      case 'Movies':
-        return libraryItems.filter(item => item.type === 'movie');
-      case 'TV Shows':
-        return libraryItems.filter(item => item.type === 'tv');
-      case 'Watchlist':
-        return libraryItems.slice(0, 2); // Mock watchlist
+      } catch (error) {
+        console.error('Failed to load library content:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLibraryContent();
+  }, []);
+
+  const getTotalItems = () => {
+    return libraryContent.length + watchlist.length + favorites.length;
+  };
+
+  const getEnabledAddons = () => {
+    return settings.addons ? settings.addons.filter(addon => addon.enabled).length : 0;
+  };
+
+  const getDisabledAddons = () => {
+    return settings.addons ? settings.addons.filter(addon => !addon.enabled).length : 0;
+  };
+
+  const handleContinueWatching = () => {
+    // TODO: Implement continue watching functionality
+    console.log('Continue watching clicked');
+  };
+
+  const handleViewAll = (type) => {
+    setActiveTab(type);
+  };
+
+  const getCurrentContent = () => {
+    switch (activeTab) {
+      case 'watchlist':
+        return watchlist;
+      case 'favorites':
+        return favorites;
       default:
-        return libraryItems;
+        return libraryContent;
     }
   };
 
-  const getStats = () => {
-    const movies = libraryItems.filter(item => item.type === 'movie').length;
-    const tvShows = libraryItems.filter(item => item.type === 'tv').length;
-    const total = libraryItems.length;
-    
-    return { movies, tvShows, total };
+  const getCurrentContentCount = () => {
+    switch (activeTab) {
+      case 'watchlist':
+        return watchlist.length;
+      case 'favorites':
+        return favorites.length;
+      default:
+        return libraryContent.length;
+    }
   };
 
-  const stats = getStats();
-  const filteredItems = getFilteredItems();
+  if (isLoading) {
+    return (
+      <div className="content-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading your library...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="library-page">
-      <div className="library-header">
-        <div className="library-stats">
-          <div className="stat-item">
-            <div className="stat-number">{stats.total}</div>
-            <div className="stat-label">Total Items</div>
+    <div className="content-container">
+      {/* Page Header */}
+      <div className="page-header">
+        <h1 className="page-title">My Library</h1>
+        <p className="page-description">
+          Manage your personal collection of movies and shows. Keep track of what you want to watch and save your favorites for easy access.
+        </p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="action-buttons">
+        <button className="btn btn-secondary">
+          Your Collection • {getTotalItems()} items
+        </button>
+        <button className="btn btn-primary" onClick={handleContinueWatching}>
+          <svg className="btn-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          Continue Watching
+        </button>
+      </div>
+
+      {/* Content Categories */}
+      <div style={{ marginBottom: '24px' }}>
+        <button
+          className={`btn ${activeTab === 'watchlist' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('watchlist')}
+          style={{ marginRight: '16px' }}
+        >
+          Watchlist ({watchlist.length})
+        </button>
+        <button
+          className={`btn ${activeTab === 'favorites' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('favorites')}
+        >
+          Favorites ({favorites.length})
+        </button>
+      </div>
+
+      {/* Content Summary */}
+      <div className="content-summary">
+        <h3>Content Summary</h3>
+        <div className="summary-stats">
+          <div className="summary-stat">
+            <span className="stat-value">{getTotalItems()}</span>
+            <span className="stat-label">Total Items</span>
           </div>
-          <div className="stat-item">
-            <div className="stat-number">{stats.movies}</div>
-            <div className="stat-label">Movies</div>
+          <div className="summary-stat">
+            <span className="stat-value stat-enabled">{getEnabledAddons()}</span>
+            <span className="stat-label">Enabled Addons</span>
           </div>
-          <div className="stat-item">
-            <div className="stat-number">{stats.tvShows}</div>
-            <div className="stat-label">TV Shows</div>
+          <div className="summary-stat">
+            <span className="stat-value stat-disabled">{getDisabledAddons()}</span>
+            <span className="stat-label">Disabled Addons</span>
           </div>
         </div>
-
-        <div className="library-actions">
-          <button className="btn btn-secondary">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-            </svg>
-            Sort
-          </button>
-          <button className="btn btn-secondary">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
-            </svg>
-            Filter
-          </button>
+        <div className="last-updated">
+          Last updated: {new Date().toLocaleString()}
         </div>
       </div>
 
-      <div className="library-nav">
-        {libraryTabs.map(tab => (
-          <button
-            key={tab}
-            className={`library-tab ${libraryTab === tab ? 'active' : ''}`}
-            onClick={() => setLibraryTab(tab)}
-          >
-            {tab}
-            {tab === 'Watchlist' && (
-              <span className="tab-count">2</span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Content Section */}
+      <div className="addon-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3>Recently Added</h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setViewMode('grid')}
+              style={{ padding: '8px', minWidth: 'auto' }}
+            >
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"/>
+              </svg>
+            </button>
+            <button
+              className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setViewMode('list')}
+              style={{ padding: '8px', minWidth: 'auto' }}
+            >
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
 
-      <div className="library-content">
-        {filteredItems.length > 0 ? (
-          <div className="library-grid">
-            {filteredItems.map(item => (
-              <MovieCard key={item.id} movie={item} variant="library" />
+        {getCurrentContent().length > 0 ? (
+          <div className={`movie-grid ${viewMode === 'list' ? 'movie-list' : ''}`}>
+            {getCurrentContent().map((item) => (
+              <MovieCard
+                key={item.id}
+                movie={item}
+                variant={viewMode}
+              />
             ))}
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-icon">
-              <svg width="64" height="64" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
-              </svg>
-            </div>
-            <h3 className="empty-title">No items in {libraryTab.toLowerCase()}</h3>
-            <p className="empty-description">
-              {libraryTab === 'Watchlist' 
-                ? 'Add movies and TV shows to your watchlist to see them here.'
-                : `You haven't added any ${libraryTab.toLowerCase()} to your library yet.`
+            <svg className="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            <h3 className="empty-state-title">No {activeTab === 'watchlist' ? 'Watchlist' : activeTab === 'favorites' ? 'Favorites' : 'Collection'} Items</h3>
+            <p className="empty-state-description">
+              {activeTab === 'watchlist' 
+                ? 'Add movies and shows to your watchlist to keep track of what you want to watch.'
+                : activeTab === 'favorites'
+                ? 'Mark your favorite movies and shows to easily find them later.'
+                : 'Your collection is empty. Add some addons and sync them to start building your library.'
               }
             </p>
-            <button className="btn btn-primary">
-              Browse Content
-            </button>
+            {activeTab === 'collection' && (
+              <button className="btn btn-primary">
+                Add First Addon
+              </button>
+            )}
           </div>
         )}
       </div>

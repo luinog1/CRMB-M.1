@@ -49,7 +49,8 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
@@ -74,8 +75,8 @@ class ApiService {
   }
 
   // Search functionality
-  async searchContent(query) {
-    return this.request(`/tmdb/search?q=${encodeURIComponent(query)}`);
+  async searchContent(query, type = 'multi', page = 1) {
+    return this.request(`/tmdb/search?query=${encodeURIComponent(query)}&type=${type}&page=${page}`);
   }
   
   // Trakt endpoints
@@ -113,9 +114,13 @@ class ApiService {
     });
   }
   
-  // Stremio endpoints
-  async getStreamingSources(type, id) {
-    return this.request(`/stremio/sources/${type}/${id}`);
+  // Stremio endpoints - Enhanced with proper protocol support
+  async getStreamingSources(type, id, addons = null) {
+    if (!addons) {
+      // Use default addons if none specified
+      addons = 'https://torrentio.strem.io';
+    }
+    return this.request(`/stremio/sources/${type}/${id}?addons=${addons}`);
   }
   
   async getStremioAddons() {
@@ -128,6 +133,52 @@ class ApiService {
   
   async getStremioMetadataByTmdb(type, tmdbId) {
     return this.request(`/stremio/meta-by-tmdb/${type}/${tmdbId}`);
+  }
+
+  // New Stremio catalog endpoints
+  async getStremioCatalog(addonId, type, catalogId, options = {}) {
+    const { skip = 0, limit = 20, genre, search, sort } = options;
+    let url = `/stremio/addon/${addonId}/catalog/${type}/${catalogId}`;
+    
+    const params = new URLSearchParams();
+    if (skip > 0) params.append('skip', skip);
+    if (limit !== 20) params.append('limit', limit);
+    if (genre) params.append('genre', genre);
+    if (search) params.append('search', search);
+    if (sort) params.append('sort', sort);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return this.request(url);
+  }
+
+  async getStremioSubtitles(type, id, options = {}) {
+    const { videoID, videoSize } = options;
+    let url = `/stremio/subtitles/${type}/${id}`;
+    
+    const params = new URLSearchParams();
+    if (videoID) params.append('videoID', videoID);
+    if (videoSize) params.append('videoSize', videoSize);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return this.request(url);
+  }
+
+  // Install and manage addons
+  async installAddon(addonUrl) {
+    return this.request('/stremio/install-addon', {
+      method: 'POST',
+      body: JSON.stringify({ addonUrl })
+    });
+  }
+
+  async getAddonManifest(addonId) {
+    return this.request(`/stremio/addon/${addonId}/manifest`);
   }
   
   async getMovieDetails(tmdbId) {
@@ -183,6 +234,25 @@ class ApiService {
   setTraktAccessToken(token) {
     this.apiKeys.trakt.accessToken = token;
     localStorage.setItem('trakt_access_token', token);
+  }
+
+  // Get current API keys
+  getApiKeys() {
+    return this.apiKeys;
+  }
+
+  // Check if API keys are configured
+  hasApiKey(service) {
+    switch(service) {
+      case 'tmdb':
+        return !!this.apiKeys.tmdb;
+      case 'trakt':
+        return !!(this.apiKeys.trakt.clientId && this.apiKeys.trakt.accessToken);
+      case 'mdblist':
+        return !!this.apiKeys.mdblist;
+      default:
+        return false;
+    }
   }
 }
 
