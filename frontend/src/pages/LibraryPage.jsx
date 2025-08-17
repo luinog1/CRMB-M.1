@@ -211,7 +211,7 @@ const LibraryPage = () => {
               }
             </p>
             {activeTab === 'collection' && (
-              <button className="btn btn-primary">
+              <button className="btn btn-primary" onClick={() => window.location.href = '/settings?tab=addon-manager'}>
                 Add First Addon
               </button>
             )}

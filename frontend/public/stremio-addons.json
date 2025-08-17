@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Torrentio",
+    "version": "0.0.12",
+    "description": "Stremio addon for torrents.",
+    "types": ["movie", "series"],
+    "id": "org.stremio.torrentio",
+    "catalogs": []
+  },
+  {
+    "name": "The Pirate Bay",
+    "version": "1.4.0",
+    "description": "Stremio addon for The Pirate Bay.",
+    "types": ["movie", "series"],
+    "id": "org.stremio.thepiratebay",
+    "catalogs": []
+  },
+  {
+    "name": "1337x",
+    "version": "1.4.0",
+    "description": "Stremio addon for 1337x.",
+    "types": ["movie", "series"],
+    "id": "org.stremio.1337x",
+    "catalogs": []
+  }
+]

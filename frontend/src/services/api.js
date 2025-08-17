@@ -181,6 +181,19 @@ class ApiService {
     return this.request(`/stremio/addon/${addonId}/manifest`);
   }
   
+  async getAddons() {
+    try {
+      const response = await fetch('/stremio-addons.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch addons: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching addon metadata:', error);
+      throw error;
+    }
+  }
+
   async getMovieDetails(tmdbId) {
     return this.request(`/tmdb/movie/${tmdbId}?append_to_response=credits,videos,similar`);
   }

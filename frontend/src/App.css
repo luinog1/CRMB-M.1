@@ -79,8 +79,8 @@ body {
 }
 
 .sidebar-logo svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   color: var(--button-text-primary);
 }
 
@@ -117,8 +117,8 @@ body {
 }
 
 .sidebar-item svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   color: var(--text-primary);
 }
 
@@ -792,6 +792,7 @@ body {
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;
+    padding: 15px 0;
   }
   
   .main-content {
@@ -824,11 +825,36 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 16px;
   }
+  
+  /* Enhanced sidebar icons for minimized state - made larger and proportional */
+  .sidebar-logo {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 15px;
+  }
+  
+  .sidebar-logo svg {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .sidebar-item {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    margin: 0 auto 8px;
+  }
+  
+  .sidebar-item svg {
+    width: 26px;
+    height: 26px;
+  }
 }
 
 @media (max-width: 480px) {
   .sidebar {
     width: 50px;
+    padding: 10px 0;
   }
   
   .main-content {
@@ -850,5 +876,29 @@ body {
   .movie-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
+  }
+  
+  /* Further enhanced sidebar icons for very small screens - made larger and proportional */
+  .sidebar-logo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+  }
+  
+  .sidebar-logo svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .sidebar-item {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    margin: 0 auto 6px;
+  }
+  
+  .sidebar-item svg {
+    width: 24px;
+    height: 24px;
   }
 }
