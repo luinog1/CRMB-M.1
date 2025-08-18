@@ -66,8 +66,8 @@ class ApiService {
   }
 
   // TMDB endpoints
-  async getTrending() {
-    return this.request('/tmdb/trending');
+  async getTrending(mediaType = 'movie', timeWindow = 'week') {
+    return this.request(`/tmdb/trending/${mediaType}/${timeWindow}`);
   }
 
   async getNewReleases() {

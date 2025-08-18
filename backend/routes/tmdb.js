@@ -38,6 +38,22 @@ router.get('/trending', requireTmdbApiKey, async (req, res) => {
   }
 });
 
+// Get trending content with path parameters
+router.get('/trending/:mediaType/:timeWindow', requireTmdbApiKey, async (req, res) => {
+  const { mediaType, timeWindow } = req.params;
+  
+  try {
+    const response = await axios.get(
+      `${TMDB_API_URL}/trending/${mediaType}/${timeWindow}?api_key=${req.tmdbApiKey}`
+    );
+    
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error('TMDB trending error:', error.response?.data || error.message);
+    res.status(500).json({ message: 'Failed to fetch trending content' });
+  }
+});
+
 // Get new releases (movies now playing)
 router.get('/new-releases', requireTmdbApiKey, async (req, res) => {
   const { page = 1, region } = req.query;
