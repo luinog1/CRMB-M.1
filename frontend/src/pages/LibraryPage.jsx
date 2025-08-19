@@ -16,27 +16,67 @@ const LibraryPage = () => {
     const loadLibraryContent = async () => {
       setIsLoading(true);
       
+      console.group('🔍 LibraryPage Debug - Data Loading');
+      console.log('📂 Starting library content load...');
+      
       try {
         // Load library content from addons or local storage
+        console.log('📦 Loading addons...');
         const addons = await ApiService.getAddons();
+        console.log('✅ Addons loaded:', addons);
+        console.log('📊 Addon count:', addons?.length || 0);
+        
         if (addons && addons.length > 0) {
-          // Try to load user library from addons
-          const userLibrary = await ApiService.getUserLibrary();
-          if (userLibrary && userLibrary.length > 0) {
-            setLibraryContent(userLibrary);
+          console.log('🔄 Syncing with addons...');
+          const syncedContent = await ApiService.syncAddons();
+          console.log('📚 Synced content:', syncedContent);
+          console.log('📊 Synced content count:', syncedContent?.length || 0);
+          
+          if (syncedContent && syncedContent.length > 0) {
+            console.log('✅ Setting library content from sync');
+            setLibraryContent(syncedContent);
+          } else {
+            console.log('⚠️ No content from addon sync, trying local storage...');
+            // Fallback to local storage
+            const userLibrary = await ApiService.getUserLibrary();
+            console.log('📚 User library from local storage:', userLibrary);
+            setLibraryContent(userLibrary || []);
           }
+        } else {
+          console.log('⚠️ No addons found, loading from local storage...');
+          const userLibrary = await ApiService.getUserLibrary();
+          console.log('📚 User library from local storage:', userLibrary);
+          setLibraryContent(userLibrary || []);
         }
 
         // Load watchlist and favorites from local storage
+        console.log('💾 Loading watchlist from localStorage...');
         const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+        console.log('📋 Watchlist loaded:', savedWatchlist);
+        console.log('📊 Watchlist count:', savedWatchlist.length);
+        
+        console.log('💾 Loading favorites from localStorage...');
         const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        console.log('⭐ Favorites loaded:', savedFavorites);
+        console.log('📊 Favorites count:', savedFavorites.length);
         
         setWatchlist(savedWatchlist);
         setFavorites(savedFavorites);
 
+        console.log('📊 Final state summary:');
+        console.log('  - Library content:', libraryContent.length);
+        console.log('  - Watchlist:', savedWatchlist.length);
+        console.log('  - Favorites:', savedFavorites.length);
+        console.log('  - Total items:', libraryContent.length + savedWatchlist.length + savedFavorites.length);
+
       } catch (error) {
-        console.error('Failed to load library content:', error);
+        console.error('❌ Failed to load library content:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
       } finally {
+        console.groupEnd();
         setIsLoading(false);
       }
     };
@@ -66,14 +106,31 @@ const LibraryPage = () => {
   };
 
   const getCurrentContent = () => {
+    console.group('📊 LibraryPage Debug - Content Selection');
+    console.log('🎯 Active tab:', activeTab);
+    console.log('📋 Watchlist items:', watchlist.length);
+    console.log('⭐ Favorites items:', favorites.length);
+    console.log('📚 Library content items:', libraryContent.length);
+    
+    let content;
     switch (activeTab) {
       case 'watchlist':
-        return watchlist;
+        content = watchlist;
+        console.log('📋 Returning watchlist content:', content);
+        break;
       case 'favorites':
-        return favorites;
+        content = favorites;
+        console.log('⭐ Returning favorites content:', content);
+        break;
       default:
-        return libraryContent;
+        content = libraryContent;
+        console.log('📚 Returning library content:', content);
+        break;
     }
+    
+    console.log('📊 Final content count:', content.length);
+    console.groupEnd();
+    return content;
   };
 
   const getCurrentContentCount = () => {
@@ -186,37 +243,61 @@ const LibraryPage = () => {
           </div>
         </div>
 
-        {getCurrentContent().length > 0 ? (
-          <div className={`movie-grid ${viewMode === 'list' ? 'movie-list' : ''}`}>
-            {getCurrentContent().map((item) => (
-              <MovieCard
-                key={item.id}
-                movie={item}
-                variant={viewMode}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <svg className="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            </svg>
-            <h3 className="empty-state-title">No {activeTab === 'watchlist' ? 'Watchlist' : activeTab === 'favorites' ? 'Favorites' : 'Collection'} Items</h3>
-            <p className="empty-state-description">
-              {activeTab === 'watchlist' 
-                ? 'Add movies and shows to your watchlist to keep track of what you want to watch.'
-                : activeTab === 'favorites'
-                ? 'Mark your favorite movies and shows to easily find them later.'
-                : 'Your collection is empty. Add some addons and sync them to start building your library.'
-              }
-            </p>
-            {activeTab === 'collection' && (
-              <button className="btn btn-primary" onClick={() => window.location.href = '/settings?tab=addon-manager'}>
-                Add First Addon
-              </button>
-            )}
-          </div>
-        )}
+        {(() => {
+          const currentContent = getCurrentContent();
+          console.group('🎬 LibraryPage Debug - Render Content');
+          console.log('📊 Current content count:', currentContent.length);
+          console.log('🎯 Active tab:', activeTab);
+          console.log('📋 Content preview:', currentContent.slice(0, 3));
+          
+          if (currentContent.length > 0) {
+            console.log('✅ Rendering content grid with', currentContent.length, 'items');
+            console.groupEnd();
+            return (
+              <div className={`movie-grid ${viewMode === 'list' ? 'movie-list' : ''}`}>
+                {currentContent.map((item, index) => {
+                  console.log(`🎭 Rendering item ${index + 1}:`, {
+                    id: item.id,
+                    title: item.title,
+                    type: item.type,
+                    year: item.year
+                  });
+                  return (
+                    <MovieCard
+                      key={item.id}
+                      movie={item}
+                      variant={viewMode}
+                    />
+                  );
+                })}
+              </div>
+            );
+          } else {
+            console.log('⚠️ No content found, rendering empty state');
+            console.groupEnd();
+            return (
+              <div className="empty-state">
+                <svg className="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <h3 className="empty-state-title">No {activeTab === 'watchlist' ? 'Watchlist' : activeTab === 'favorites' ? 'Favorites' : 'Collection'} Items</h3>
+                <p className="empty-state-description">
+                  {activeTab === 'watchlist'
+                    ? 'Add movies and shows to your watchlist to keep track of what you want to watch.'
+                    : activeTab === 'favorites'
+                    ? 'Mark your favorite movies and shows to easily find them later.'
+                    : 'Your collection is empty. Add some addons and sync them to start building your library.'
+                  }
+                </p>
+                {activeTab === 'collection' && (
+                  <button className="btn btn-primary" onClick={() => window.location.href = '/settings?tab=addon-manager'}>
+                    Add First Addon
+                  </button>
+                )}
+              </div>
+            );
+          }
+        })()}
       </div>
     </div>
   );

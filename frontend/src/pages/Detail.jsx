@@ -33,10 +33,29 @@ function Detail() {
         }
         setTmdbData(tmdbResponse);
         
-        // Fetch Stremio metadata using TMDB ID
+        // Fetch Stremio metadata using the new API
         try {
-          const stremioResponse = await ApiService.getStremioMetadataByTmdb(type, id);
+          // For Stremio, we need to convert TMDB ID to Stremio ID format
+          // This is a simplified approach - in a real app, you might need a more robust ID mapping
+          const stremioId = `tmdb:${id}`;
+          const stremioResponse = await ApiService.getStremioMetadata(type, stremioId);
           setStremioData(stremioResponse);
+          
+          // Also fetch streams if metadata was found
+          if (stremioResponse && stremioResponse.meta) {
+            try {
+              // Use the Stremio ID from the metadata response if available
+              const streamId = stremioResponse.meta.id || stremioId;
+              const streamsResponse = await ApiService.getStremioStreams(type, streamId);
+              // Add streams to the Stremio data
+              setStremioData(prevData => ({
+                ...prevData,
+                streams: streamsResponse.streams || []
+              }));
+            } catch (streamsError) {
+              console.warn('Failed to fetch Stremio streams:', streamsError.message);
+            }
+          }
         } catch (stremioError) {
           console.warn('Failed to fetch Stremio metadata:', stremioError.message);
           // Don't set error for Stremio failure, just log it
@@ -215,6 +234,32 @@ function Detail() {
                   <strong>Language:</strong> {stremioData.meta.language}
                 </div>
               )}
+            </div>
+          </section>
+        )}
+        
+        {/* Streaming Sources */}
+        {stremioData && stremioData.streams && stremioData.streams.length > 0 && (
+          <section className="detail-section">
+            <h2>Streaming Sources</h2>
+            <div className="streams-list">
+              {stremioData.streams.map((stream, index) => (
+                <div key={index} className="stream-item">
+                  <div className="stream-name">
+                    {stream.name || `Source ${index + 1}`}
+                  </div>
+                  <div className="stream-info">
+                    {stream.title && <span className="stream-title">{stream.title}</span>}
+                    {stream.quality && <span className="stream-quality">{stream.quality}</span>}
+                  </div>
+                  <button
+                    className="btn btn-primary stream-button"
+                    onClick={() => window.open(stream.url, '_blank')}
+                  >
+                    Watch
+                  </button>
+                </div>
+              ))}
             </div>
           </section>
         )}

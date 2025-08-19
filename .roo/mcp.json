@@ -30,6 +30,10 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-puppeteer"
+      ],
+      "alwaysAllow": [
+        "puppeteer_fill",
+        "puppeteer_click"
       ]
     }
   }

@@ -1,6 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const apiRoutes = require('./routes');
+const addonRoutes = require('./routes/addon');
+const testRoutes = require('./routes/test');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,9 +29,26 @@ app.get('/api/debug', (req, res) => {
   });
 });
 
+// Direct test endpoints that bypass all middleware
+app.get('/direct-test', (req, res) => {
+  console.log('DIRECT TEST ENDPOINT HIT');
+  res.status(200).send('direct test response');
+});
+
 // API Routes
-const apiRoutes = require('./routes');
+app.get('/api/stremio/ping', (req, res) => {
+  console.log('PING ENDPOINT HIT');
+  res.status(200).send('pong');
+});
+
+// Mount test routes directly
+app.use('/test', testRoutes);
+
+// API Routes
 app.use('/api', apiRoutes);
+
+// Stremio Addon Routes
+app.use('/', addonRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

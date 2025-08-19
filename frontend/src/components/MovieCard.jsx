@@ -3,13 +3,25 @@ import { useNavigate } from 'react-router-dom';
 
 const MovieCard = ({ movie, variant = 'default', onPlay, onMoreInfo }) => {
   const navigate = useNavigate();
+  
+  console.group('🎬 MovieCard Debug - Component Render');
+  console.log('📋 Movie data received:', {
+    id: movie?.id,
+    title: movie?.title || movie?.name,
+    type: movie?.type,
+    year: movie?.year,
+    hasPoster: !!movie?.poster,
+    hasPosterPath: !!movie?.poster_path,
+    variant: variant
+  });
+  console.groupEnd();
 
   const handlePlayClick = (e) => {
     e.stopPropagation();
     if (onPlay) {
       onPlay(movie);
     } else {
-      console.log('Playing:', movie.title);
+      console.log('Playing:', movie.title || movie.name);
       // TODO: Implement default play functionality
     }
   };
@@ -25,7 +37,7 @@ const MovieCard = ({ movie, variant = 'default', onPlay, onMoreInfo }) => {
     if (onMoreInfo) {
       onMoreInfo(movie);
     } else {
-      console.log('More info for:', movie.title);
+      console.log('More info for:', movie.title || movie.name);
       // TODO: Implement default more info functionality
     }
   };
@@ -77,7 +89,7 @@ const MovieCard = ({ movie, variant = 'default', onPlay, onMoreInfo }) => {
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div className="movie-poster" style={{ width: '80px', height: '120px', flexShrink: 0 }}>
             {moviePoster ? (
-              <img src={moviePoster} alt={movie.title} />
+              <img src={moviePoster} alt={movie.title || movie.name} />
             ) : (
               <div className="movie-poster-placeholder">
                 <svg width="48" height="48" fill="currentColor" viewBox="0 0 24 24">
@@ -88,7 +100,7 @@ const MovieCard = ({ movie, variant = 'default', onPlay, onMoreInfo }) => {
           </div>
           
           <div style={{ flex: 1 }}>
-            <h3 className="movie-title">{movie.title}</h3>
+            <h3 className="movie-title">{movie.title || movie.name}</h3>
             <p className="movie-meta">
               {movieYear && `${movieYear} • `}
               {movieGenres}
@@ -117,7 +129,7 @@ const MovieCard = ({ movie, variant = 'default', onPlay, onMoreInfo }) => {
     <div className="movie-card" onClick={handleCardClick}>
       <div className="movie-poster">
         {moviePoster ? (
-          <img src={moviePoster} alt={movie.title} />
+          <img src={moviePoster} alt={movie.title || movie.name} />
         ) : (
           <div className="movie-poster-placeholder">
             <svg width="48" height="48" fill="currentColor" viewBox="0 0 24 24">
@@ -137,7 +149,7 @@ const MovieCard = ({ movie, variant = 'default', onPlay, onMoreInfo }) => {
       </div>
       
       <div className="movie-info">
-        <h3 className="movie-title">{movie.title}</h3>
+        <h3 className="movie-title">{movie.title || movie.name}</h3>
         <p className="movie-meta">
           {movieYear && `${movieYear} • `}
           {movieGenres}

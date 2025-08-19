@@ -11,64 +11,232 @@ const SettingsPage = () => {
 
   useEffect(() => {
     const loadAddons = async () => {
+      console.group('⚙️ SettingsPage - Loading Addons');
       try {
-        const addonList = await ApiService.getAddons();
-        setAddons(addonList || []);
-        setError(null); // Clear any previous errors on success
+        setIsLoading(true);
+        
+        // Try to load from API first
+        console.log('🔍 Fetching addons from API...');
+        try {
+          const response = await ApiService.getAddons();
+          console.log('📋 API response:', response);
+          
+          if (response && response.addons && response.addons.length > 0) {
+            console.log(`✅ Received ${response.addons.length} addons from API`);
+            setAddons(response.addons);
+            
+            // Save to localStorage for future use
+            localStorage.setItem('stremio_addons', JSON.stringify(response.addons));
+            
+            // Update context if available
+            if (updateSettings) {
+              updateSettings({ addons: response.addons });
+            }
+            
+            setError(null);
+          } else {
+            console.warn('⚠️ API returned no addons, falling back to localStorage');
+            fallbackToLocalStorage();
+          }
+        } catch (apiError) {
+          console.error('❌ API request failed:', apiError);
+          console.log('⚠️ Falling back to localStorage');
+          fallbackToLocalStorage();
+        }
       } catch (error) {
-        console.error('Failed to load addons:', error);
+        console.error('❌ Failed to load addons:', error);
         setError(error.message || 'Failed to load addons. Please check your connection and try again.');
       } finally {
         setIsLoading(false);
+        console.log('🏁 Addon loading complete');
+        console.groupEnd();
+      }
+    };
+    
+    const fallbackToLocalStorage = () => {
+      // Try to load from localStorage
+      const savedAddons = localStorage.getItem('stremio_addons');
+      
+      if (savedAddons) {
+        console.log('📋 Found saved addons in localStorage');
+        try {
+          const parsedAddons = JSON.parse(savedAddons);
+          setAddons(parsedAddons);
+          
+          // Update context if available
+          if (updateSettings) {
+            updateSettings({ addons: parsedAddons });
+          }
+          
+          setError(null);
+        } catch (parseError) {
+          console.error('❌ Failed to parse saved addons:', parseError);
+          setError('Failed to load saved addons. Data may be corrupted.');
+          setAddons([]);
+        }
+      } else {
+        console.warn('⚠️ No saved addons found in localStorage');
+        setAddons([]);
+        setError('No addons configured. Add your first addon to start fetching content.');
       }
     };
 
     loadAddons();
-  }, []);
+  }, [updateSettings]);
 
   const handleSyncContent = async () => {
+    console.group('🔄 SettingsPage - Syncing Content');
     try {
-      await ApiService.syncAddons();
+      setIsLoading(true);
+      console.log('🔄 Syncing addons...');
+      
+      // First sync the addons from the backend
+      const syncedAddons = await ApiService.syncAddons();
+      console.log(`✅ Synced ${syncedAddons.length} addons`);
+      
+      // Then sync the library content
+      await ApiService.syncLibraryContent();
+      console.log('✅ Library content synced');
+      
       // Reload addons after sync
-      const addonList = await ApiService.getAddons();
-      setAddons(addonList || []);
+      const response = await ApiService.getAddons();
+      console.log('📋 API response after sync:', response);
+      
+      if (response && response.addons) {
+        console.log(`✅ Received ${response.addons.length} addons after sync`);
+        setAddons(response.addons);
+        
+        // Save to localStorage
+        localStorage.setItem('stremio_addons', JSON.stringify(response.addons));
+        
+        // Update context if available
+        if (updateSettings) {
+          updateSettings({ addons: response.addons });
+        }
+        
+        setError(null);
+      }
     } catch (error) {
-      console.error('Failed to sync content:', error);
+      console.error('❌ Failed to sync content:', error);
+      setError(`Failed to sync content: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+      console.log('🏁 Sync operation complete');
+      console.groupEnd();
     }
   };
 
   const handleAddAddon = () => {
+    console.log('➕ Adding new addon');
     // Implement add addon functionality
     const addonUrl = prompt('Enter addon URL:');
     if (addonUrl) {
+      console.log(`🔍 Installing addon from URL: ${addonUrl}`);
       handleInstallAddon(addonUrl);
+    } else {
+      console.log('⚠️ Addon URL not provided, installation cancelled');
     }
   };
 
   const handleInstallAddon = async (addonUrl) => {
+    console.group('🔌 SettingsPage - Installing Addon');
     try {
       setIsLoading(true);
-      const newAddon = await ApiService.installAddon(addonUrl);
-      setAddons(prevAddons => [...prevAddons, newAddon.addon]);
-      setError(null);
+      console.log(`🔄 Installing addon from URL: ${addonUrl}`);
+      
+      // Validate URL format
+      let formattedUrl = addonUrl;
+      if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+        console.log('🔄 Adding http:// prefix to URL');
+        formattedUrl = `http://${formattedUrl}`;
+      }
+      
+      console.log(`🔄 Using formatted URL: ${formattedUrl}`);
+      const newAddon = await ApiService.installAddon(formattedUrl);
+      console.log('📋 Installation response:', newAddon);
+      
+      if (newAddon && newAddon.addon) {
+        console.log('✅ Addon installed successfully');
+        setAddons(prevAddons => [...prevAddons, newAddon.addon]);
+        
+        // Save updated addons to localStorage
+        const updatedAddons = [...addons, newAddon.addon];
+        localStorage.setItem('stremio_addons', JSON.stringify(updatedAddons));
+        
+        // Update context if available
+        if (updateSettings) {
+          updateSettings({ addons: updatedAddons });
+        }
+        
+        setError(null);
+      } else {
+        console.error('❌ Invalid response from addon installation');
+        setError('Failed to install addon. Invalid response from server.');
+      }
     } catch (error) {
-      console.error('Failed to install addon:', error);
+      console.error('❌ Failed to install addon:', error);
       setError(error.message || 'Failed to install addon. Please check the URL and try again.');
     } finally {
       setIsLoading(false);
+      console.log('🏁 Installation operation complete');
+      console.groupEnd();
     }
   };
 
   const handleToggleAddon = (addonId) => {
-    setAddons(prevAddons =>
-      prevAddons.map(addon =>
-        addon.id === addonId ? { ...addon, enabled: !addon.enabled } : addon
-      )
-    );
+    console.group('🔄 SettingsPage - Toggling Addon');
+    console.log(`🔄 Toggling addon: ${addonId}`);
+    
+    // Update state
+    const updatedAddons = addons.map(addon => {
+      if (addon.id === addonId) {
+        console.log(`${addon.enabled ? '🔴 Disabling' : '🟢 Enabling'} addon: ${addon.name}`);
+        return { ...addon, enabled: !addon.enabled };
+      }
+      return addon;
+    });
+    
+    setAddons(updatedAddons);
+    
+    // Save to localStorage
+    localStorage.setItem('stremio_addons', JSON.stringify(updatedAddons));
+    console.log('💾 Saved updated addons to localStorage');
+    
+    // Update context if available
+    if (updateSettings) {
+      updateSettings({ addons: updatedAddons });
+      console.log('🔄 Updated context with new addon settings');
+    }
+    
+    console.log('🏁 Toggle operation complete');
+    console.groupEnd();
   };
 
   const handleRemoveAddon = (addonId) => {
-    setAddons(prevAddons => prevAddons.filter(addon => addon.id !== addonId));
+    console.group('🗑️ SettingsPage - Removing Addon');
+    console.log(`🗑️ Removing addon: ${addonId}`);
+    
+    // Find the addon to be removed for logging
+    const addonToRemove = addons.find(addon => addon.id === addonId);
+    if (addonToRemove) {
+      console.log(`🗑️ Removing: ${addonToRemove.name}`);
+    }
+    
+    const updatedAddons = addons.filter(addon => addon.id !== addonId);
+    setAddons(updatedAddons);
+    
+    // Save to localStorage
+    localStorage.setItem('stremio_addons', JSON.stringify(updatedAddons));
+    console.log('💾 Saved updated addons to localStorage');
+    
+    // Update context if available
+    if (updateSettings) {
+      updateSettings({ addons: updatedAddons });
+      console.log('🔄 Updated context with new addon settings');
+    }
+    
+    console.log('🏁 Remove operation complete');
+    console.groupEnd();
   };
 
   const getTotalItems = () => {

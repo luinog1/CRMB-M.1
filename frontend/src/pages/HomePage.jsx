@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MovieCard from '../components/MovieCard';
 import ApiService from '../services/api';
 import { useApp } from '../context/AppContext';
 
 const HomePage = () => {
   const { settings } = useApp();
+  const navigate = useNavigate();
   const [backendStatus, setBackendStatus] = useState('checking');
   const [apiError, setApiError] = useState(null);
   const [trendingMovies, setTrendingMovies] = useState([]);
@@ -17,44 +19,88 @@ const HomePage = () => {
   // Load content and check backend connectivity on component mount or when settings change
   useEffect(() => {
     const loadContent = async () => {
+      console.group('🏠 HomePage - Loading Content');
       setIsLoading(true);
       setApiError(null);
 
       try {
         // Check backend health first
+        console.log('🔍 Checking backend health...');
         const healthCheck = await ApiService.checkHealth();
+        console.log('✅ Backend health check successful:', healthCheck);
         setBackendStatus('connected');
 
-        // Try to load content from addons
-        const addons = await ApiService.getAddons();
-        if (addons && addons.length > 0) {
-          // Load catalog from first available addon
-          const catalog = await ApiService.getAddonCatalog('cinemeta', 'movie', 'top');
-          if (catalog && catalog.metas && catalog.metas.length > 0) {
-            setTrendingMovies(catalog.metas.slice(0, 6));
+        // Try to load content from Stremio addons using the new API
+        try {
+          // Get movie catalog
+          console.log('🔍 Fetching movie catalog from Stremio addons...');
+          const movieCatalog = await ApiService.getStremioCatalog('movie', 'top');
+          console.log('📋 Movie catalog response:', movieCatalog);
+          
+          if (movieCatalog && movieCatalog.metas && movieCatalog.metas.length > 0) {
+            console.log(`✅ Received ${movieCatalog.metas.length} movies from catalog`);
+            
+            // Normalize movie data to ensure it has required fields
+            const normalizedMovies = movieCatalog.metas.map(movie => ({
+              ...movie,
+              title: movie.title || movie.name || 'Unknown Title',
+              id: movie.id || `unknown-${Math.random().toString(36).substring(7)}`
+            }));
+            
+            setTrendingMovies(normalizedMovies.slice(0, 6));
             setHasContent(true);
+          } else {
+            console.warn('⚠️ Movie catalog response has no metas or is empty');
           }
+          
+          // Get series catalog for popular content
+          console.log('🔍 Fetching series catalog from Stremio addons...');
+          const seriesCatalog = await ApiService.getStremioCatalog('series', 'top');
+          console.log('📋 Series catalog response:', seriesCatalog);
+          
+          if (seriesCatalog && seriesCatalog.metas && seriesCatalog.metas.length > 0) {
+            console.log(`✅ Received ${seriesCatalog.metas.length} series from catalog`);
+            
+            // Normalize series data
+            const normalizedSeries = seriesCatalog.metas.map(series => ({
+              ...series,
+              title: series.title || series.name || 'Unknown Series',
+              id: series.id || `unknown-${Math.random().toString(36).substring(7)}`
+            }));
+            
+            setPopularMovies(normalizedSeries.slice(0, 6));
+          } else {
+            console.warn('⚠️ Series catalog response has no metas or is empty');
+          }
+        } catch (addonError) {
+          console.warn('⚠️ Failed to load from Stremio addons:', addonError.message);
         }
 
         // If no addon content, try TMDB (if API key is available)
         if (!hasContent && settings.tmdbApiKey) {
           try {
+            console.log('🔍 Falling back to TMDB API...');
             const tmdbTrending = await ApiService.getTrending('movie', 'week');
+            console.log('📋 TMDB trending response:', tmdbTrending);
+            
             if (tmdbTrending && tmdbTrending.results) {
+              console.log(`✅ Received ${tmdbTrending.results.length} movies from TMDB`);
               setTrendingMovies(tmdbTrending.results.slice(0, 6));
               setHasContent(true);
             }
           } catch (tmdbError) {
-            console.log('TMDB not available:', tmdbError.message);
+            console.log('⚠️ TMDB not available:', tmdbError.message);
           }
         }
 
       } catch (error) {
-        console.error('Failed to load content:', error);
+        console.error('❌ Failed to load content:', error);
         setBackendStatus('disconnected');
         setApiError(error.message);
       } finally {
         setIsLoading(false);
+        console.log('🏁 Content loading complete. Has content:', hasContent);
+        console.groupEnd();
       }
     };
 
@@ -62,12 +108,12 @@ const HomePage = () => {
   }, [settings, hasContent]);
 
   const handlePlay = (movie) => {
-    console.log('Playing:', movie.title);
+    console.log('Playing:', movie.title || movie.name);
     // TODO: Implement play functionality
   };
 
   const handleMoreInfo = (movie) => {
-    console.log('More info for:', movie.title);
+    console.log('More info for:', movie.title || movie.name);
     // TODO: Navigate to detail page
   };
 
@@ -89,6 +135,10 @@ const HomePage = () => {
     } catch (error) {
       console.error('Failed to sync addons:', error);
     }
+  };
+
+  const handleViewAll = () => {
+    navigate('/library');
   };
 
   if (isLoading) {
@@ -198,11 +248,11 @@ const HomePage = () => {
             </svg>
             {trendingMovies[0]?.rating || '8.5'}
           </div>
-          <div className="featured-year">{trendingMovies[0]?.year || '2024'}</div>
+          <div className="featured-year">{trendingMovies[0]?.year || trendingMovies[0]?.releaseInfo || '2024'}</div>
           <div className="featured-label">Featured</div>
-          <h1 className="featured-title">{trendingMovies[0]?.title || 'Featured Content'}</h1>
+          <h1 className="featured-title">{trendingMovies[0]?.title || trendingMovies[0]?.name || 'Featured Content'}</h1>
           <p className="featured-description">
-            {trendingMovies[0]?.overview || 'Discover amazing movies and shows from your configured addons. Your next favorite entertainment is just a click away.'}
+            {trendingMovies[0]?.overview || trendingMovies[0]?.description || 'Discover amazing movies and shows from your configured addons. Your next favorite entertainment is just a click away.'}
           </p>
           <div className="action-buttons">
             <button className="btn btn-primary" onClick={() => handlePlay(trendingMovies[0])}>
@@ -232,7 +282,7 @@ const HomePage = () => {
         <div className="content-section">
           <div className="section-header">
             <h2 className="section-title">Trending Now</h2>
-            <button className="view-all">View All</button>
+            <button className="view-all" onClick={handleViewAll}>View All</button>
           </div>
           <div className="movie-grid">
             {trendingMovies.map((movie) => (
@@ -251,7 +301,7 @@ const HomePage = () => {
         <div className="content-section">
           <div className="section-header">
             <h2 className="section-title">New Releases</h2>
-            <button className="view-all">View All</button>
+            <button className="view-all" onClick={handleViewAll}>View All</button>
           </div>
           <div className="movie-grid">
             {newReleases.map((movie) => (
@@ -270,7 +320,7 @@ const HomePage = () => {
         <div className="content-section">
           <div className="section-header">
             <h2 className="section-title">Popular</h2>
-            <button className="view-all">View All</button>
+            <button className="view-all" onClick={handleViewAll}>View All</button>
           </div>
           <div className="movie-grid">
             {popularMovies.map((movie) => (

@@ -21,20 +21,30 @@ export const AppProvider = ({ children }) => {
   // Initialize settings from localStorage if available
   const [settings, setSettings] = useState(() => {
     const savedSettings = localStorage.getItem('app_settings');
-    return savedSettings ? JSON.parse(savedSettings) : {
+    const savedAddons = localStorage.getItem('stremio_addons');
+    
+    const defaultSettings = {
       autoPlayNext: true,
       skipIntro: false,
       videoQuality: 'Full HD (1080p)',
       subtitleLanguage: 'English',
       tmdbApiKey: localStorage.getItem('tmdb_api_key') || '',
       traktClientId: localStorage.getItem('trakt_client_id') || '',
-      mdblistApiKey: localStorage.getItem('mdblist_api_key') || ''
+      mdblistApiKey: localStorage.getItem('mdblist_api_key') || '',
+      addons: savedAddons ? JSON.parse(savedAddons) : []
     };
+    
+    return savedSettings ? {...defaultSettings, ...JSON.parse(savedSettings)} : defaultSettings;
   });
   
   // Save settings to localStorage when they change
   useEffect(() => {
     localStorage.setItem('app_settings', JSON.stringify(settings));
+    
+    // Also save addons separately for backward compatibility
+    if (settings.addons) {
+      localStorage.setItem('stremio_addons', JSON.stringify(settings.addons));
+    }
   }, [settings]);
 
   const toggleSetting = (settingKey) => {
