@@ -34,6 +34,7 @@ const HomePage = () => {
         try {
           // Get movie catalog
           console.log('🔍 Fetching movie catalog from Stremio addons...');
+          console.log('🔍 DEBUG: Frontend calling getStremioCatalog...');
           const movieCatalog = await ApiService.getStremioCatalog('movie', 'top');
           console.log('📋 Movie catalog response:', movieCatalog);
           
@@ -55,6 +56,7 @@ const HomePage = () => {
           
           // Get series catalog for popular content
           console.log('🔍 Fetching series catalog from Stremio addons...');
+          console.log('🔍 DEBUG: Frontend calling getStremioCatalog for series...');
           const seriesCatalog = await ApiService.getStremioCatalog('series', 'top');
           console.log('📋 Series catalog response:', seriesCatalog);
           

@@ -151,6 +151,83 @@ async function runTests() {
   console.log('\n🏁 Stremio Addon Client Tests Completed');
 }
 
+// Test the new getAvailableAddons method
+async function testGetAvailableAddons() {
+  console.log('\n🔍 Testing getAvailableAddons method...');
+  
+  try {
+    const availableAddons = addonClient.getAvailableAddons();
+    console.log(`✅ Found ${availableAddons.length} available addons`);
+    
+    if (availableAddons.length > 0) {
+      console.log('📝 First available addon:');
+      console.log(`  - ID: ${availableAddons[0].id}`);
+      console.log(`  - Name: ${availableAddons[0].name}`);
+      console.log(`  - URL: ${availableAddons[0].url}`);
+      console.log(`  - Enabled: ${availableAddons[0].enabled}`);
+    } else {
+      console.log('⚠️ No available addons found');
+    }
+    
+    return availableAddons;
+  } catch (error) {
+    console.error('❌ Error testing getAvailableAddons method:', error);
+    return [];
+  }
+}
+
+// Test the new API endpoint
+async function testGetAvailableAddonsEndpoint() {
+  console.log('\n🔍 Testing /api/stremio/addons/available endpoint...');
+  
+  try {
+    const response = await fetch('http://localhost:3001/api/stremio/addons/available');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`✅ API endpoint responded with ${data.addons?.length || 0} addons`);
+    
+    if (data.addons && data.addons.length > 0) {
+      console.log('📝 First addon from API:');
+      console.log(`  - ID: ${data.addons[0].id}`);
+      console.log(`  - Name: ${data.addons[0].name}`);
+      console.log(`  - Enabled: ${data.addons[0].enabled}`);
+    }
+    
+    return data.addons || [];
+  } catch (error) {
+    console.error('❌ Error testing API endpoint:', error);
+    return [];
+  }
+}
+
+// Run the new tests
+async function runNewTests() {
+  console.log('\n🧪 Starting New Addon Functionality Tests');
+  
+  // Test the getAvailableAddons method
+  await testGetAvailableAddons();
+  
+  // Test the API endpoint
+  await testGetAvailableAddonsEndpoint();
+  
+  console.log('\n🏁 New Addon Functionality Tests Completed');
+}
+
+// Run all tests
+async function runAllTests() {
+  await runTests();
+  await runNewTests();
+}
+
+// Run all tests
+runAllTests().catch(error => {
+  console.error('❌ Test failed with error:', error);
+});
+
 // Run the tests
 runTests().catch(error => {
   console.error('❌ Test failed with error:', error);

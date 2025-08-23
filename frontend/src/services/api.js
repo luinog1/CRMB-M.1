@@ -147,13 +147,13 @@ class ApiService {
   
   // Stremio endpoints - Updated to use new backend API
   async getStremioAddons() {
-    return this.request('/stremio/addons');
+    return this.request('/api/stremio/addons');
   }
   
   // Get catalog from Stremio addons
   async getStremioCatalog(type, id, options = {}) {
     const { skip, limit, genre, search } = options;
-    let url = `/stremio/catalog/${type}/${id}`;
+    let url = `/api/stremio/catalog/${type}/${id}`;
     
     const params = new URLSearchParams();
     if (skip) params.append('skip', skip);
@@ -170,12 +170,28 @@ class ApiService {
   
   // Get metadata for a specific item
   async getStremioMetadata(type, id) {
-    return this.request(`/stremio/meta/${type}/${id}`);
+    console.log('🔍 DEBUG: Frontend API - getStremioMetadata called:', { type, id });
+    try {
+      const result = await this.request(`/api/stremio/meta/${type}/${id}`);
+      console.log('🔍 DEBUG: Frontend API - getStremioMetadata result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ DEBUG: Frontend API - getStremioMetadata error:', error);
+      throw error;
+    }
   }
   
   // Get streams for a specific item
   async getStremioStreams(type, id) {
-    return this.request(`/stremio/streams/${type}/${id}`);
+    console.log('🔍 DEBUG: Frontend API - getStremioStreams called:', { type, id });
+    try {
+      const result = await this.request(`/api/stremio/stream/${type}/${id}`);
+      console.log('🔍 DEBUG: Frontend API - getStremioStreams result:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ DEBUG: Frontend API - getStremioStreams error:', error);
+      throw error;
+    }
   }
   
   // Search for content
@@ -403,7 +419,7 @@ class ApiService {
       console.log('🔄 Fetching updated addons from backend...');
       
       // Call the backend endpoint to sync addons
-      const response = await this.request('/stremio/addons');
+      const response = await this.request('/api/stremio/addons');
       const addons = response.addons || [];
       
       console.log(`✅ Received ${addons.length} addons from backend`);
@@ -419,11 +435,21 @@ class ApiService {
   
   async getAddons() {
     try {
-      const response = await this.request('/stremio/addons');
+      const response = await this.request('/api/stremio/addons');
       return response.addons || [];
     } catch (error) {
       console.error('Error fetching addon metadata:', error);
       throw new Error(`Failed to load addons: ${error.message}`);
+    }
+  }
+
+  async getAvailableAddons() {
+    try {
+      const response = await this.request('/api/stremio/addons/available');
+      return response.addons || [];
+    } catch (error) {
+      console.error('Error fetching available addons:', error);
+      throw new Error(`Failed to load available addons: ${error.message}`);
     }
   }
 

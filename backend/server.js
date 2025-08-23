@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const apiRoutes = require('./routes');
-const addonRoutes = require('./routes/addon');
+const stremioRoutes = require('./routes/stremio');
 const testRoutes = require('./routes/test');
 
 const app = express();
@@ -47,8 +47,8 @@ app.use('/test', testRoutes);
 // API Routes
 app.use('/api', apiRoutes);
 
-// Stremio Addon Routes
-app.use('/', addonRoutes);
+// Stremio API Routes
+app.use('/api/stremio', stremioRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -56,7 +56,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`CRUMBLE BFF server running on http://localhost:${PORT}`);
-});
+const addonClient = require('./services/addonClient');
+
+// Initialize Stremio addon client and start server
+(async () => {
+  try {
+    console.log('🔄 Initializing Stremio addon client...');
+    const initSuccess = await addonClient.initialize();
+    
+    if (initSuccess) {
+      console.log('✅ Stremio addon client initialized successfully');
+    } else {
+      console.error('❌ Stremio addon client initialization failed');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing Stremio addon client:', error);
+  }
+
+  // Start server
+  app.listen(PORT, () => {
+    console.log(`CRUMBLE BFF server running on http://localhost:${PORT}`);
+  });
+})();

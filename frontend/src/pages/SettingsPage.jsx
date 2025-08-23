@@ -6,6 +6,7 @@ const SettingsPage = () => {
   const { settings, updateSettings } = useApp();
   const [activeTab, setActiveTab] = useState('addon-manager');
   const [addons, setAddons] = useState([]);
+  const [availableAddons, setAvailableAddons] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -82,7 +83,32 @@ const SettingsPage = () => {
     };
 
     loadAddons();
+    loadAvailableAddons();
   }, [updateSettings]);
+
+  const loadAvailableAddons = async () => {
+    try {
+      console.log('🔍 Fetching available addons from API...');
+      const response = await ApiService.getAvailableAddons();
+      console.log('📋 Available addons response:', response);
+      
+      if (response && response.length > 0) {
+        // Filter out addons that are already installed
+        const installedAddonIds = addons.map(addon => addon.id);
+        const filteredAvailableAddons = response.filter(
+          addon => !installedAddonIds.includes(addon.id)
+        );
+        setAvailableAddons(filteredAvailableAddons);
+        console.log(`✅ Found ${filteredAvailableAddons.length} available addons`);
+      } else {
+        setAvailableAddons([]);
+        console.log('⚠️ No available addons found');
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch available addons:', error);
+      setAvailableAddons([]);
+    }
+  };
 
   const handleSyncContent = async () => {
     console.group('🔄 SettingsPage - Syncing Content');
@@ -135,6 +161,42 @@ const SettingsPage = () => {
       handleInstallAddon(addonUrl);
     } else {
       console.log('⚠️ Addon URL not provided, installation cancelled');
+    }
+  };
+
+  const handleAddAvailableAddon = async (addon) => {
+    console.log(`➕ Adding available addon: ${addon.name} (${addon.id})`);
+    try {
+      setIsLoading(true);
+      const newAddon = await ApiService.installAddon(addon.url);
+      console.log('📋 Installation response:', newAddon);
+      
+      if (newAddon && newAddon.addon) {
+        console.log('✅ Addon installed successfully');
+        setAddons(prevAddons => [...prevAddons, newAddon.addon]);
+        
+        // Save updated addons to localStorage
+        const updatedAddons = [...addons, newAddon.addon];
+        localStorage.setItem('stremio_addons', JSON.stringify(updatedAddons));
+        
+        // Update context if available
+        if (updateSettings) {
+          updateSettings({ addons: updatedAddons });
+        }
+        
+        // Refresh available addons to remove the one that was just added
+        await loadAvailableAddons();
+        
+        setError(null);
+      } else {
+        console.error('❌ Invalid response from addon installation');
+        setError('Failed to install addon. Invalid response from server.');
+      }
+    } catch (error) {
+      console.error('❌ Failed to install addon:', error);
+      setError(error.message || 'Failed to install addon. Please check the URL and try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -377,6 +439,71 @@ const SettingsPage = () => {
               </svg>
               Add First Addon
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Available Addons */}
+      <div className="addon-section">
+        <h3>Available Addons ({availableAddons.length})</h3>
+        
+        {availableAddons.length > 0 ? (
+          <div>
+            {availableAddons.map((addon) => (
+              <div key={addon.id} style={{
+                padding: '16px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                background: 'var(--secondary-background)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ color: 'var(--text-primary)', marginBottom: '4px' }}>{addon.name}</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{addon.description}</p>
+                    <div style={{ marginTop: '8px' }}>
+                      <span style={{
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        background: 'var(--accent-primary)',
+                        color: 'white',
+                        marginRight: '6px'
+                      }}>
+                        {addon.types.join(', ')}
+                      </span>
+                      <span style={{
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        background: 'var(--accent-secondary)',
+                        color: 'white'
+                      }}>
+                        {addon.resources.join(', ')}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      className="btn btn-primary"
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                      onClick={() => handleAddAvailableAddon(addon)}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Installing...' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <svg className="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            <h3 className="empty-state-title">No available addons</h3>
+            <p className="empty-state-description">All available addons have been added or there are no addons available.</p>
           </div>
         )}
       </div>

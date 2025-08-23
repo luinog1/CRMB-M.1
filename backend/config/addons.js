@@ -12,7 +12,7 @@ module.exports = {
       description: 'Basic metadata for movies and series',
       resources: ['catalog', 'meta'],
       types: ['movie', 'series'],
-      enabled: true
+      enabled: false
     },
     {
       id: 'crmb-addon',

@@ -20,6 +20,8 @@ class StremioAddonClient {
    */
   async initialize() {
     console.log('🔄 Initializing StremioAddonClient...');
+    console.log('Addons to load:', addonsConfig.addons.filter(addon => addon.enabled).map(a => a.url));
+    console.log('🔄 Initializing StremioAddonClient...');
     
     try {
       // Load all enabled addons from config
@@ -45,13 +47,16 @@ class StremioAddonClient {
   async loadAddon(url) {
     try {
       console.log(`🔍 Loading addon from ${url}...`);
-      const { addon } = await this.client.detectFromURL(url);
+      const result = await this.client.detectFromURL(url);
       
-      if (addon && addon.manifest && addon.manifest.id) {
-        // Store the addon with its methods
-        this.addons.set(addon.manifest.id, addon);
-        console.log(`✅ Loaded addon: ${addon.manifest.name} (${addon.manifest.id})`);
-        return addon;
+      if (result && result.addon && result.addon.manifest && result.addon.manifest.id) {
+        // Store the addon instance with its client
+        this.addons.set(result.addon.manifest.id, {
+          manifest: result.addon.manifest,
+          client: result.addon
+        });
+        console.log(`✅ Loaded addon: ${result.addon.manifest.name} (${result.addon.manifest.id})`);
+        return result.addon;
       } else {
         console.error(`❌ Invalid addon from ${url}: missing manifest or ID`);
         return null;
@@ -67,7 +72,15 @@ class StremioAddonClient {
    * @returns {Array} - Array of addon manifests
    */
   getAddons() {
-    return Array.from(this.addons.values()).map(addon => addon.manifest);
+    return Array.from(this.addons.values()).map(item => item.manifest);
+  }
+
+  /**
+   * Get a list of all available addons from the configuration
+   * @returns {Array} - Array of all available addon configurations
+   */
+  getAvailableAddons() {
+    return addonsConfig.addons;
   }
 
   /**
@@ -168,10 +181,9 @@ class StremioAddonClient {
     }
     
     // Find addons that support this catalog type
-    const supportingAddons = Array.from(this.addons.values()).filter(addon => {
-      return addon.manifest.resources.includes('catalog') &&
-             addon.manifest.types.includes(type) &&
-             addon.manifest.catalogs.some(cat => cat.type === type);
+    const supportingAddons = Array.from(this.addons.values()).filter(item => {
+      return item.manifest.resources.includes('catalog') &&
+             item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting catalog ${type}/${id}`);
@@ -184,12 +196,9 @@ class StremioAddonClient {
     const results = await Promise.allSettled(
       supportingAddons.map(async (addon) => {
         try {
-          // Use direct HTTP request to the addon's catalog endpoint
-          // Extract the base URL from transportUrl (remove manifest.json)
-          const baseUrl = addon.transportUrl.replace('/manifest.json', '');
-          const url = `${baseUrl}/catalog/${type}/${id}.json`;
-          const response = await axios.get(url, { params: extra });
-          return response.data && response.data.metas ? response.data.metas : [];
+          // Use the addon client's get method with correct parameter format
+          const response = await addon.client.get('catalog', type, id, extra);
+          return response && response.metas ? response.metas : [];
         } catch (error) {
           console.error(`❌ Error getting catalog from ${addon.manifest.name}:`, error);
           return [];
@@ -235,9 +244,9 @@ class StremioAddonClient {
     }
     
     // Find addons that support this meta type
-    const supportingAddons = Array.from(this.addons.values()).filter(addon => {
-      return addon.manifest.resources.includes('meta') &&
-             addon.manifest.types.includes(type);
+    const supportingAddons = Array.from(this.addons.values()).filter(item => {
+      return item.manifest.resources.includes('meta') &&
+             item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting meta ${type}/${id}`);
@@ -249,16 +258,12 @@ class StremioAddonClient {
     // Try to get metadata from each addon until we find one that works
     for (const addon of supportingAddons) {
       try {
-        // Use direct HTTP request to the addon's meta endpoint
-        // Extract the base URL from transportUrl (remove manifest.json)
-        const baseUrl = addon.transportUrl.replace('/manifest.json', '');
-        const url = `${baseUrl}/meta/${type}/${id}.json`;
-        const response = await axios.get(url);
-        
-        if (response.data && response.data.meta) {
+        // Use the addon client's get method with correct parameter format
+        const response = await addon.client.get('meta', type, id);
+        if (response && response.meta) {
           // Cache the result
-          this.setCache(cacheKey, response.data);
-          return response.data;
+          this.setCache(cacheKey, response);
+          return response;
         }
       } catch (error) {
         console.error(`❌ Error getting metadata from ${addon.manifest.name}:`, error);
@@ -287,9 +292,9 @@ class StremioAddonClient {
     }
     
     // Find addons that support streams for this type
-    const supportingAddons = Array.from(this.addons.values()).filter(addon => {
-      return addon.manifest.resources.includes('stream') &&
-             addon.manifest.types.includes(type);
+    const supportingAddons = Array.from(this.addons.values()).filter(item => {
+      return item.manifest.resources.includes('stream') &&
+             item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting streams for ${type}/${id}`);
@@ -302,12 +307,9 @@ class StremioAddonClient {
     const results = await Promise.allSettled(
       supportingAddons.map(async (addon) => {
         try {
-          // Use direct HTTP request to the addon's stream endpoint
-          // Extract the base URL from transportUrl (remove manifest.json)
-          const baseUrl = addon.transportUrl.replace('/manifest.json', '');
-          const url = `${baseUrl}/stream/${type}/${id}.json`;
-          const response = await axios.get(url);
-          return response.data && response.data.streams ? response.data.streams : [];
+          // Use the addon client's get method with correct parameter format
+          const response = await addon.client.get('stream', type, id);
+          return response && response.streams ? response.streams : [];
         } catch (error) {
           console.error(`❌ Error getting streams from ${addon.manifest.name}:`, error);
           return [];
@@ -348,9 +350,9 @@ class StremioAddonClient {
     }
     
     // Find addons that support subtitles for this type
-    const supportingAddons = Array.from(this.addons.values()).filter(addon => {
-      return addon.manifest.resources.includes('subtitles') &&
-             addon.manifest.types.includes(type);
+    const supportingAddons = Array.from(this.addons.values()).filter(item => {
+      return item.manifest.resources.includes('subtitles') &&
+             item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting subtitles for ${type}/${id}`);
@@ -363,12 +365,9 @@ class StremioAddonClient {
     const results = await Promise.allSettled(
       supportingAddons.map(async (addon) => {
         try {
-          // Use direct HTTP request to the addon's subtitles endpoint
-          // Extract the base URL from transportUrl (remove manifest.json)
-          const baseUrl = addon.transportUrl.replace('/manifest.json', '');
-          const url = `${baseUrl}/subtitles/${type}/${id}.json`;
-          const response = await axios.get(url, { params: extra });
-          return response.data && response.data.subtitles ? response.data.subtitles : [];
+          // Use the addon client's get method with correct parameter format
+          const response = await addon.client.get('subtitles', type, id, extra);
+          return response && response.subtitles ? response.subtitles : [];
         } catch (error) {
           console.error(`❌ Error getting subtitles from ${addon.manifest.name}:`, error);
           return [];
