@@ -186,9 +186,12 @@ function Detail() {
         <div className="detail-hero-overlay"></div>
         <div className="detail-hero-content">
           <div className="detail-poster">
-            <img 
-              src={posterUrl || `https://trae-api-us.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(`${title} movie poster`)}&image_size=portrait_4_3`}
+            <img
+              src={posterUrl || '/placeholder-poster.jpg'}
               alt={title}
+              onError={(e) => {
+                e.target.src = '/placeholder-poster.jpg';
+              }}
             />
           </div>
           <div className="detail-info">

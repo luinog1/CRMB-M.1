@@ -433,12 +433,9 @@ const SettingsPage = () => {
             </svg>
             <h3 className="empty-state-title">No addons configured</h3>
             <p className="empty-state-description">Add your first addon to start fetching content</p>
-            <button className="btn btn-primary" onClick={handleAddAddon}>
-              <svg className="btn-icon" fill="currentColor" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-              </svg>
-              Add First Addon
-            </button>
+            <p className="empty-state-description" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Use the "Add New Addon" button above to get started
+            </p>
           </div>
         )}
       </div>

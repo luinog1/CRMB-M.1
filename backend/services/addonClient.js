@@ -101,21 +101,42 @@ class StremioAddonClient {
    */
   getAddonHealthStatus() {
     const enabledAddons = addonsConfig.addons.filter(addon => addon.enabled);
-    const loadedAddons = Array.from(this.addons.keys());
+    const loadedAddons = Array.from(this.addons.values());
+    const loadedAddonIds = Array.from(this.addons.keys());
 
     const status = {
       total: enabledAddons.length,
       loaded: loadedAddons.length,
       failed: enabledAddons.length - loadedAddons.length,
-      catalogSupport: Array.from(this.addons.values()).filter(item => item.manifest.resources.includes('catalog')).length,
-      streamSupport: Array.from(this.addons.values()).filter(item => item.manifest.resources.includes('stream')).length,
-      metaSupport: Array.from(this.addons.values()).filter(item => item.manifest.resources.includes('meta')).length,
-      details: enabledAddons.map(addon => ({
-        id: addon.id,
-        name: addon.name,
-        loaded: loadedAddons.includes(addon.id),
-        resources: addon.resources
-      }))
+      catalogSupport: loadedAddons.filter(item => {
+        return item.manifest.resources.some(resource =>
+          typeof resource === 'string' ? resource === 'catalog' : resource.name === 'catalog'
+        );
+      }).length,
+      streamSupport: loadedAddons.filter(item => {
+        return item.manifest.resources.some(resource =>
+          typeof resource === 'string' ? resource === 'stream' : resource.name === 'stream'
+        );
+      }).length,
+      metaSupport: loadedAddons.filter(item => {
+        return item.manifest.resources.some(resource =>
+          typeof resource === 'string' ? resource === 'meta' : resource.name === 'meta'
+        );
+      }).length,
+      details: enabledAddons.map(addon => {
+        // Find the loaded addon by matching URLs since IDs might differ
+        const loadedAddon = loadedAddons.find(item => {
+          // Match by URL since that's consistent between config and loaded addon
+          return item.manifest.url === addon.url;
+        });
+
+        return {
+          id: addon.id,
+          name: addon.name,
+          loaded: !!loadedAddon,
+          resources: addon.resources
+        };
+      })
     };
 
     return status;
@@ -220,8 +241,12 @@ class StremioAddonClient {
     
     // Find addons that support this catalog type
     const supportingAddons = Array.from(this.addons.values()).filter(item => {
-      return item.manifest.resources.includes('catalog') &&
-             item.manifest.types.includes(type);
+      // Handle both string resources and object resources
+      const hasCatalogResource = item.manifest.resources.some(resource =>
+        typeof resource === 'string' ? resource === 'catalog' :
+        resource.name === 'catalog'
+      );
+      return hasCatalogResource && item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting catalog ${type}/${id}`);
@@ -283,8 +308,12 @@ class StremioAddonClient {
     
     // Find addons that support this meta type
     const supportingAddons = Array.from(this.addons.values()).filter(item => {
-      return item.manifest.resources.includes('meta') &&
-             item.manifest.types.includes(type);
+      // Handle both string resources and object resources
+      const hasMetaResource = item.manifest.resources.some(resource =>
+        typeof resource === 'string' ? resource === 'meta' :
+        resource.name === 'meta'
+      );
+      return hasMetaResource && item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting meta ${type}/${id}`);
@@ -331,8 +360,12 @@ class StremioAddonClient {
     
     // Find addons that support streams for this type
     const supportingAddons = Array.from(this.addons.values()).filter(item => {
-      return item.manifest.resources.includes('stream') &&
-             item.manifest.types.includes(type);
+      // Handle both string resources and object resources
+      const hasStreamResource = item.manifest.resources.some(resource =>
+        typeof resource === 'string' ? resource === 'stream' :
+        resource.name === 'stream'
+      );
+      return hasStreamResource && item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting streams for ${type}/${id}`);
@@ -389,8 +422,12 @@ class StremioAddonClient {
     
     // Find addons that support subtitles for this type
     const supportingAddons = Array.from(this.addons.values()).filter(item => {
-      return item.manifest.resources.includes('subtitles') &&
-             item.manifest.types.includes(type);
+      // Handle both string resources and object resources
+      const hasSubtitlesResource = item.manifest.resources.some(resource =>
+        typeof resource === 'string' ? resource === 'subtitles' :
+        resource.name === 'subtitles'
+      );
+      return hasSubtitlesResource && item.manifest.types.includes(type);
     });
     
     console.log(`📊 Found ${supportingAddons.length} addons supporting subtitles for ${type}/${id}`);
