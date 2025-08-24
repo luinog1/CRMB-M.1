@@ -15,38 +15,23 @@ const LibraryPage = () => {
   useEffect(() => {
     const loadLibraryContent = async () => {
       setIsLoading(true);
-      
+
       console.group('🔍 LibraryPage Debug - Data Loading');
       console.log('📂 Starting library content load...');
-      
+
       try {
-        // Load library content from addons or local storage
-        console.log('📦 Loading addons...');
-        const addons = await ApiService.getAddons();
-        console.log('✅ Addons loaded:', addons);
-        console.log('📊 Addon count:', addons?.length || 0);
-        
-        if (addons && addons.length > 0) {
-          console.log('🔄 Syncing with addons...');
-          const syncedContent = await ApiService.syncAddons();
-          console.log('📚 Synced content:', syncedContent);
-          console.log('📊 Synced content count:', syncedContent?.length || 0);
-          
-          if (syncedContent && syncedContent.length > 0) {
-            console.log('✅ Setting library content from sync');
-            setLibraryContent(syncedContent);
-          } else {
-            console.log('⚠️ No content from addon sync, trying local storage...');
-            // Fallback to local storage
-            const userLibrary = await ApiService.getUserLibrary();
-            console.log('📚 User library from local storage:', userLibrary);
-            setLibraryContent(userLibrary || []);
-          }
+        // Load library content using the new unified API
+        console.log('📚 Loading library content from unified API...');
+        const libraryData = await ApiService.getLibrary();
+        console.log('📋 Library content loaded:', libraryData);
+        console.log('📊 Library content count:', libraryData?.length || 0);
+
+        if (libraryData && libraryData.length > 0) {
+          console.log('✅ Setting library content from unified API');
+          setLibraryContent(libraryData);
         } else {
-          console.log('⚠️ No addons found, loading from local storage...');
-          const userLibrary = await ApiService.getUserLibrary();
-          console.log('📚 User library from local storage:', userLibrary);
-          setLibraryContent(userLibrary || []);
+          console.log('⚠️ No library content found');
+          setLibraryContent([]);
         }
 
         // Load watchlist and favorites from local storage
@@ -54,20 +39,20 @@ const LibraryPage = () => {
         const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
         console.log('📋 Watchlist loaded:', savedWatchlist);
         console.log('📊 Watchlist count:', savedWatchlist.length);
-        
+
         console.log('💾 Loading favorites from localStorage...');
         const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
         console.log('⭐ Favorites loaded:', savedFavorites);
         console.log('📊 Favorites count:', savedFavorites.length);
-        
+
         setWatchlist(savedWatchlist);
         setFavorites(savedFavorites);
 
         console.log('📊 Final state summary:');
-        console.log('  - Library content:', libraryContent.length);
+        console.log('  - Library content:', libraryData?.length || 0);
         console.log('  - Watchlist:', savedWatchlist.length);
         console.log('  - Favorites:', savedFavorites.length);
-        console.log('  - Total items:', libraryContent.length + savedWatchlist.length + savedFavorites.length);
+        console.log('  - Total items:', (libraryData?.length || 0) + savedWatchlist.length + savedFavorites.length);
 
       } catch (error) {
         console.error('❌ Failed to load library content:', error);
@@ -75,6 +60,10 @@ const LibraryPage = () => {
           message: error.message,
           stack: error.stack
         });
+        // Set empty arrays as fallback
+        setLibraryContent([]);
+        setWatchlist([]);
+        setFavorites([]);
       } finally {
         console.groupEnd();
         setIsLoading(false);
@@ -86,14 +75,6 @@ const LibraryPage = () => {
 
   const getTotalItems = () => {
     return libraryContent.length + watchlist.length + favorites.length;
-  };
-
-  const getEnabledAddons = () => {
-    return settings.addons ? settings.addons.filter(addon => addon.enabled).length : 0;
-  };
-
-  const getDisabledAddons = () => {
-    return settings.addons ? settings.addons.filter(addon => !addon.enabled).length : 0;
   };
 
   const handleContinueWatching = () => {
@@ -204,12 +185,12 @@ const LibraryPage = () => {
             <span className="stat-label">Total Items</span>
           </div>
           <div className="summary-stat">
-            <span className="stat-value stat-enabled">{getEnabledAddons()}</span>
-            <span className="stat-label">Enabled Addons</span>
+            <span className="stat-value">{libraryContent.length}</span>
+            <span className="stat-label">Library Items</span>
           </div>
           <div className="summary-stat">
-            <span className="stat-value stat-disabled">{getDisabledAddons()}</span>
-            <span className="stat-label">Disabled Addons</span>
+            <span className="stat-value">{watchlist.length}</span>
+            <span className="stat-label">Watchlist</span>
           </div>
         </div>
         <div className="last-updated">
@@ -286,12 +267,12 @@ const LibraryPage = () => {
                     ? 'Add movies and shows to your watchlist to keep track of what you want to watch.'
                     : activeTab === 'favorites'
                     ? 'Mark your favorite movies and shows to easily find them later.'
-                    : 'Your collection is empty. Add some addons and sync them to start building your library.'
+                    : 'Your collection is empty. Content will appear here as you discover and save movies and shows.'
                   }
                 </p>
                 {activeTab === 'collection' && (
-                  <button className="btn btn-primary" onClick={() => window.location.href = '/settings?tab=addon-manager'}>
-                    Add First Addon
+                  <button className="btn btn-primary" onClick={() => window.location.href = '/settings'}>
+                    Configure Services
                   </button>
                 )}
               </div>

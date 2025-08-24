@@ -13,7 +13,6 @@ const HomePage = () => {
   const [newReleases, setNewReleases] = useState([]);
   const [popularMovies, setPopularMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [addonCatalogs, setAddonCatalogs] = useState([]);
   const [hasContent, setHasContent] = useState(false);
 
   // Load content and check backend connectivity on component mount or when settings change
@@ -30,69 +29,67 @@ const HomePage = () => {
         console.log('✅ Backend health check successful:', healthCheck);
         setBackendStatus('connected');
 
-        // Try to load content from Stremio addons using the new API
+        // Load content using the new simplified API
         try {
-          // Get movie catalog
-          console.log('🔍 Fetching movie catalog from Stremio addons...');
-          console.log('🔍 DEBUG: Frontend calling getStremioCatalog...');
-          const movieCatalog = await ApiService.getStremioCatalog('movie', 'top');
-          console.log('📋 Movie catalog response:', movieCatalog);
-          
-          if (movieCatalog && movieCatalog.metas && movieCatalog.metas.length > 0) {
-            console.log(`✅ Received ${movieCatalog.metas.length} movies from catalog`);
-            
+          // Get trending movies
+          console.log('🔍 Fetching trending movies...');
+          const trendingMoviesData = await ApiService.getCatalog('movie', 'trending');
+          console.log('📋 Trending movies response:', trendingMoviesData);
+
+          if (trendingMoviesData && trendingMoviesData.length > 0) {
+            console.log(`✅ Received ${trendingMoviesData.length} trending movies`);
+
             // Normalize movie data to ensure it has required fields
-            const normalizedMovies = movieCatalog.metas.map(movie => ({
+            const normalizedMovies = trendingMoviesData.map(movie => ({
               ...movie,
               title: movie.title || movie.name || 'Unknown Title',
-              id: movie.id || `unknown-${Math.random().toString(36).substring(7)}`
+              id: movie.id || `unknown-${Math.random().toString(36).substring(7)}`,
+              type: movie.type || 'movie'
             }));
-            
+
             setTrendingMovies(normalizedMovies.slice(0, 6));
             setHasContent(true);
           } else {
-            console.warn('⚠️ Movie catalog response has no metas or is empty');
+            console.warn('⚠️ No trending movies received');
           }
-          
-          // Get series catalog for popular content
-          console.log('🔍 Fetching series catalog from Stremio addons...');
-          console.log('🔍 DEBUG: Frontend calling getStremioCatalog for series...');
-          const seriesCatalog = await ApiService.getStremioCatalog('series', 'top');
-          console.log('📋 Series catalog response:', seriesCatalog);
-          
-          if (seriesCatalog && seriesCatalog.metas && seriesCatalog.metas.length > 0) {
-            console.log(`✅ Received ${seriesCatalog.metas.length} series from catalog`);
-            
-            // Normalize series data
-            const normalizedSeries = seriesCatalog.metas.map(series => ({
-              ...series,
-              title: series.title || series.name || 'Unknown Series',
-              id: series.id || `unknown-${Math.random().toString(36).substring(7)}`
-            }));
-            
-            setPopularMovies(normalizedSeries.slice(0, 6));
-          } else {
-            console.warn('⚠️ Series catalog response has no metas or is empty');
-          }
-        } catch (addonError) {
-          console.warn('⚠️ Failed to load from Stremio addons:', addonError.message);
-        }
 
-        // If no addon content, try TMDB (if API key is available)
-        if (!hasContent && settings.tmdbApiKey) {
-          try {
-            console.log('🔍 Falling back to TMDB API...');
-            const tmdbTrending = await ApiService.getTrending('movie', 'week');
-            console.log('📋 TMDB trending response:', tmdbTrending);
-            
-            if (tmdbTrending && tmdbTrending.results) {
-              console.log(`✅ Received ${tmdbTrending.results.length} movies from TMDB`);
-              setTrendingMovies(tmdbTrending.results.slice(0, 6));
-              setHasContent(true);
-            }
-          } catch (tmdbError) {
-            console.log('⚠️ TMDB not available:', tmdbError.message);
+          // Get popular movies/series for additional content
+          console.log('🔍 Fetching popular content...');
+          const popularMoviesData = await ApiService.getCatalog('movie', 'popular');
+          console.log('📋 Popular movies response:', popularMoviesData);
+
+          if (popularMoviesData && popularMoviesData.length > 0) {
+            console.log(`✅ Received ${popularMoviesData.length} popular movies`);
+
+            const normalizedPopular = popularMoviesData.map(item => ({
+              ...item,
+              title: item.title || item.name || 'Unknown Title',
+              id: item.id || `unknown-${Math.random().toString(36).substring(7)}`,
+              type: item.type || 'movie'
+            }));
+
+            setPopularMovies(normalizedPopular.slice(0, 6));
           }
+
+          // Get new releases if available
+          console.log('🔍 Fetching new releases...');
+          const newReleasesData = await ApiService.getCatalog('movie', 'new');
+          console.log('📋 New releases response:', newReleasesData);
+
+          if (newReleasesData && newReleasesData.length > 0) {
+            console.log(`✅ Received ${newReleasesData.length} new releases`);
+
+            const normalizedNew = newReleasesData.map(item => ({
+              ...item,
+              title: item.title || item.name || 'Unknown Title',
+              id: item.id || `unknown-${Math.random().toString(36).substring(7)}`,
+              type: item.type || 'movie'
+            }));
+
+            setNewReleases(normalizedNew.slice(0, 6));
+          }
+        } catch (contentError) {
+          console.warn('⚠️ Failed to load content:', contentError.message);
         }
 
       } catch (error) {
@@ -124,19 +121,14 @@ const HomePage = () => {
     // TODO: Implement add to list functionality
   };
 
-  const handleConfigureAddons = () => {
-    // Navigate to settings/addon manager
+  const handleConfigureSettings = () => {
+    // Navigate to settings
     window.location.hash = '#settings';
   };
 
-  const handleSyncAddons = async () => {
-    try {
-      await ApiService.syncAddons();
-      // Reload content after sync
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to sync addons:', error);
-    }
+  const handleRefreshContent = () => {
+    // Reload the page to refresh content
+    window.location.reload();
   };
 
   const handleViewAll = () => {
@@ -214,25 +206,25 @@ const HomePage = () => {
           </svg>
           <h2 className="no-content-title">No Content Available</h2>
           <p className="no-content-description">
-            Add and configure some addons, then sync them to start building your library of movies and shows.
+            Configure your API keys and services to start building your library of movies and shows.
           </p>
           <div className="action-buttons">
-            <button className="btn btn-primary" onClick={handleConfigureAddons}>
-              Configure Addons
+            <button className="btn btn-primary" onClick={handleConfigureSettings}>
+              Configure Settings
             </button>
-            <button className="btn btn-secondary" onClick={handleSyncAddons}>
-              Sync Addons
+            <button className="btn btn-secondary" onClick={handleRefreshContent}>
+              Refresh Content
             </button>
           </div>
         </div>
 
-        {/* Sync Button */}
+        {/* Refresh Button */}
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
-          <button className="btn btn-secondary" onClick={handleSyncAddons}>
+          <button className="btn btn-secondary" onClick={handleRefreshContent}>
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
             </svg>
-            Sync Addons
+            Refresh Content
           </button>
         </div>
       </div>

@@ -8,69 +8,97 @@ function Detail() {
   const navigate = useNavigate();
   const { settings } = useApp();
   
-  const [tmdbData, setTmdbData] = useState(null);
-  const [stremioData, setStremioData] = useState(null);
+  const [contentData, setContentData] = useState(null);
+  const [metadata, setMetadata] = useState(null);
+  const [streams, setStreams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchMetadata = async () => {
+    const fetchContentData = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
-        // Set TMDB API key if available
+        console.log('🔍 Fetching content data for:', { type, id });
+
+        // Set API keys if available
         if (settings?.tmdbApiKey) {
           ApiService.setApiKey('tmdb', settings.tmdbApiKey);
         }
-        
-        // Fetch TMDB data
-        let tmdbResponse;
-        if (type === 'movie') {
-          tmdbResponse = await ApiService.getMovieDetails(id);
-        } else {
-          tmdbResponse = await ApiService.getTvDetails(id);
-        }
-        setTmdbData(tmdbResponse);
-        
-        // Fetch Stremio metadata using the new API
+
+        // First, try to get metadata from the unified API
+        let metadataResponse = null;
         try {
-          // For Stremio, we need to convert TMDB ID to Stremio ID format
-          // This is a simplified approach - in a real app, you might need a more robust ID mapping
-          const stremioId = `tmdb:${id}`;
-          const stremioResponse = await ApiService.getStremioMetadata(type, stremioId);
-          setStremioData(stremioResponse);
-          
-          // Also fetch streams if metadata was found
-          if (stremioResponse && stremioResponse.meta) {
-            try {
-              // Use the Stremio ID from the metadata response if available
-              const streamId = stremioResponse.meta.id || stremioId;
-              const streamsResponse = await ApiService.getStremioStreams(type, streamId);
-              // Add streams to the Stremio data
-              setStremioData(prevData => ({
-                ...prevData,
-                streams: streamsResponse.streams || []
-              }));
-            } catch (streamsError) {
-              console.warn('Failed to fetch Stremio streams:', streamsError.message);
-            }
-          }
-        } catch (stremioError) {
-          console.warn('Failed to fetch Stremio metadata:', stremioError.message);
-          // Don't set error for Stremio failure, just log it
+          console.log('🔍 Fetching metadata...');
+          metadataResponse = await ApiService.getMetadata(id, type);
+          console.log('📋 Metadata response:', metadataResponse);
+          setMetadata(metadataResponse);
+        } catch (metadataError) {
+          console.warn('Failed to fetch unified metadata:', metadataError.message);
         }
-        
+
+        // Try to get streams from the unified API
+        try {
+          console.log('🔍 Fetching streams...');
+          const streamsResponse = await ApiService.getStreams(id, type);
+          console.log('📋 Streams response:', streamsResponse);
+          setStreams(streamsResponse || []);
+        } catch (streamsError) {
+          console.warn('Failed to fetch streams:', streamsError.message);
+          setStreams([]);
+        }
+
+        // Fallback to TMDB if unified API doesn't have data
+        if (!metadataResponse) {
+          try {
+            console.log('🔍 Falling back to TMDB API...');
+            let tmdbResponse;
+            if (type === 'movie') {
+              tmdbResponse = await ApiService.getMovieDetails(id);
+            } else {
+              tmdbResponse = await ApiService.getTvDetails(id);
+            }
+            console.log('📋 TMDB response:', tmdbResponse);
+
+            // Normalize TMDB data to match our expected format
+            const normalizedData = {
+              id: tmdbResponse.id,
+              title: tmdbResponse.title || tmdbResponse.name,
+              overview: tmdbResponse.overview,
+              poster_path: tmdbResponse.poster_path,
+              backdrop_path: tmdbResponse.backdrop_path,
+              vote_average: tmdbResponse.vote_average,
+              release_date: tmdbResponse.release_date,
+              first_air_date: tmdbResponse.first_air_date,
+              runtime: tmdbResponse.runtime,
+              episode_run_time: tmdbResponse.episode_run_time,
+              genres: tmdbResponse.genres,
+              credits: tmdbResponse.credits,
+              similar: tmdbResponse.similar,
+              type: type
+            };
+
+            setContentData(normalizedData);
+          } catch (tmdbError) {
+            console.warn('Failed to fetch TMDB data:', tmdbError.message);
+            setError('Unable to load content details. Please try again later.');
+          }
+        } else {
+          // Use the unified metadata
+          setContentData(metadataResponse);
+        }
+
       } catch (err) {
-        console.error('Failed to fetch metadata:', err);
+        console.error('Failed to fetch content data:', err);
         setError(err.message);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     if (type && id) {
-      fetchMetadata();
+      fetchContentData();
     }
   }, [type, id, settings?.tmdbApiKey]);
 
@@ -79,12 +107,23 @@ function Detail() {
   };
 
   const handlePlay = () => {
-    console.log('Playing:', tmdbData?.title || tmdbData?.name);
-    // TODO: Implement play functionality
+    console.log('Playing:', contentData?.title || contentData?.name);
+
+    // If we have streams from the unified API, try to play the first one
+    if (streams && streams.length > 0) {
+      const firstStream = streams[0];
+      if (firstStream.url) {
+        console.log('Opening stream:', firstStream.url);
+        window.open(firstStream.url, '_blank');
+        return;
+      }
+    }
+
+    // TODO: Implement additional play functionality
   };
 
   const handleAddToLibrary = () => {
-    console.log('Adding to library:', tmdbData?.title || tmdbData?.name);
+    console.log('Adding to library:', contentData?.title || contentData?.name);
     // TODO: Implement add to library functionality
   };
 
@@ -111,7 +150,7 @@ function Detail() {
     );
   }
 
-  if (!tmdbData) {
+  if (!contentData) {
     return (
       <div className="detail-page">
         <div className="error-container">
@@ -123,14 +162,14 @@ function Detail() {
     );
   }
 
-  const title = tmdbData.title || tmdbData.name;
-  const releaseDate = tmdbData.release_date || tmdbData.first_air_date;
+  const title = contentData.title || contentData.name;
+  const releaseDate = contentData.release_date || contentData.first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : '';
-  const posterUrl = tmdbData.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbData.poster_path}` : null;
-  const backdropUrl = tmdbData.backdrop_path ? `https://image.tmdb.org/t/p/original${tmdbData.backdrop_path}` : null;
-  const rating = tmdbData.vote_average ? tmdbData.vote_average.toFixed(1) : 'N/A';
-  const runtime = tmdbData.runtime || (tmdbData.episode_run_time && tmdbData.episode_run_time[0]);
-  const genres = tmdbData.genres ? tmdbData.genres.map(g => g.name).join(', ') : '';
+  const posterUrl = contentData.poster_path ? `https://image.tmdb.org/t/p/w500${contentData.poster_path}` : null;
+  const backdropUrl = contentData.backdrop_path ? `https://image.tmdb.org/t/p/original${contentData.backdrop_path}` : null;
+  const rating = contentData.vote_average ? contentData.vote_average.toFixed(1) : 'N/A';
+  const runtime = contentData.runtime || (contentData.episode_run_time && contentData.episode_run_time[0]);
+  const genres = contentData.genres ? contentData.genres.map(g => g.name).join(', ') : '';
 
   return (
     <div className="detail-page">
@@ -166,7 +205,7 @@ function Detail() {
               <span className="detail-type">{type === 'movie' ? 'Movie' : 'TV Show'}</span>
             </div>
             {genres && <div className="detail-genres">{genres}</div>}
-            <p className="detail-overview">{tmdbData.overview}</p>
+            <p className="detail-overview">{contentData.overview}</p>
             
             <div className="detail-actions">
               <button className="btn btn-primary" onClick={handlePlay}>
@@ -189,13 +228,13 @@ function Detail() {
       {/* Additional Details */}
       <div className="detail-sections">
         {/* Cast & Crew */}
-        {tmdbData.credits && tmdbData.credits.cast && tmdbData.credits.cast.length > 0 && (
+        {contentData.credits && contentData.credits.cast && contentData.credits.cast.length > 0 && (
           <section className="detail-section">
             <h2>Cast</h2>
             <div className="cast-list">
-              {tmdbData.credits.cast.slice(0, 10).map(person => (
+              {contentData.credits.cast.slice(0, 10).map(person => (
                 <div key={person.id} className="cast-member">
-                  <img 
+                  <img
                     src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : '/placeholder-person.jpg'}
                     alt={person.name}
                   />
@@ -209,44 +248,44 @@ function Detail() {
           </section>
         )}
 
-        {/* Stremio Metadata */}
-        {stremioData && stremioData.meta && (
+        {/* Additional Metadata */}
+        {metadata && (
           <section className="detail-section">
             <h2>Additional Information</h2>
             <div className="stremio-info">
-              {stremioData.meta.director && (
+              {metadata.director && (
                 <div className="info-item">
-                  <strong>Director:</strong> {stremioData.meta.director.join(', ')}
+                  <strong>Director:</strong> {Array.isArray(metadata.director) ? metadata.director.join(', ') : metadata.director}
                 </div>
               )}
-              {stremioData.meta.writer && (
+              {metadata.writer && (
                 <div className="info-item">
-                  <strong>Writer:</strong> {stremioData.meta.writer.join(', ')}
+                  <strong>Writer:</strong> {Array.isArray(metadata.writer) ? metadata.writer.join(', ') : metadata.writer}
                 </div>
               )}
-              {stremioData.meta.country && (
+              {metadata.country && (
                 <div className="info-item">
-                  <strong>Country:</strong> {stremioData.meta.country}
+                  <strong>Country:</strong> {metadata.country}
                 </div>
               )}
-              {stremioData.meta.language && (
+              {metadata.language && (
                 <div className="info-item">
-                  <strong>Language:</strong> {stremioData.meta.language}
+                  <strong>Language:</strong> {metadata.language}
                 </div>
               )}
             </div>
           </section>
         )}
-        
+
         {/* Streaming Sources */}
-        {stremioData && stremioData.streams && stremioData.streams.length > 0 && (
+        {streams && streams.length > 0 && (
           <section className="detail-section">
             <h2>Streaming Sources</h2>
             <div className="streams-list">
-              {stremioData.streams.map((stream, index) => (
+              {streams.map((stream, index) => (
                 <div key={index} className="stream-item">
                   <div className="stream-name">
-                    {stream.name || `Source ${index + 1}`}
+                    {stream.name || stream.title || `Source ${index + 1}`}
                   </div>
                   <div className="stream-info">
                     {stream.title && <span className="stream-title">{stream.title}</span>}
@@ -265,17 +304,17 @@ function Detail() {
         )}
 
         {/* Similar Content */}
-        {tmdbData.similar && tmdbData.similar.results && tmdbData.similar.results.length > 0 && (
+        {contentData.similar && contentData.similar.results && contentData.similar.results.length > 0 && (
           <section className="detail-section">
             <h2>Similar {type === 'movie' ? 'Movies' : 'Shows'}</h2>
             <div className="similar-content">
-              {tmdbData.similar.results.slice(0, 6).map(item => (
-                <div 
-                  key={item.id} 
+              {contentData.similar.results.slice(0, 6).map(item => (
+                <div
+                  key={item.id}
                   className="similar-item"
                   onClick={() => navigate(`/detail/${type}/${item.id}`)}
                 >
-                  <img 
+                  <img
                     src={item.poster_path ? `https://image.tmdb.org/t/p/w300${item.poster_path}` : '/placeholder-poster.jpg'}
                     alt={item.title || item.name}
                   />

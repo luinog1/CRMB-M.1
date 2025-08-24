@@ -10,7 +10,7 @@ class ApiService {
       },
       mdblist: localStorage.getItem('mdblist_api_key') || ''
     };
-    
+
     this.playerPreferences = {
       defaultPlayer: localStorage.getItem('default_player') || 'internal',
       externalPlayers: JSON.parse(localStorage.getItem('external_players') || '[]')
@@ -43,36 +43,13 @@ class ApiService {
     }
     
     // Debug logging for API requests
-    console.group('🔍 API Request Debug');
-    console.log('📍 Endpoint:', endpoint);
-    console.log('🔗 Full URL:', url);
-    console.log('⚙️  Options:', {
-      method: options.method || 'GET',
-      headers: Object.keys(headers).reduce((acc, key) => {
-        // Don't log sensitive API keys
-        if (key.includes('API-Key') || key.includes('Auth')) {
-          acc[key] = '[REDACTED]';
-        } else {
-          acc[key] = headers[key];
-        }
-        return acc;
-      }, {}),
-      body: options.body ? JSON.parse(options.body) : 'No body'
-    });
-    console.groupEnd();
+    console.log('🔍 API Request:', endpoint, options.method || 'GET');
     
     try {
       const response = await fetch(url, {
         headers,
         ...options,
       });
-
-      // Debug logging for API responses
-      console.group('📤 API Response Debug');
-      console.log('📍 Endpoint:', endpoint);
-      console.log('📊 Status:', response.status);
-      console.log('✅ OK:', response.ok);
-      console.groupEnd();
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -84,8 +61,7 @@ class ApiService {
       console.error('❌ API request failed:', {
         endpoint,
         url,
-        error: error.message,
-        stack: error.stack
+        error: error.message
       });
       throw error;
     }
@@ -145,313 +121,113 @@ class ApiService {
     });
   }
   
-  // Stremio endpoints - Updated to use new backend API
-  async getStremioAddons() {
-    return this.request('/api/stremio/addons');
-  }
-  
-  // Get catalog from Stremio addons
-  async getStremioCatalog(type, id, options = {}) {
-    const { skip, limit, genre, search } = options;
-    let url = `/api/stremio/catalog/${type}/${id}`;
-    
-    const params = new URLSearchParams();
-    if (skip) params.append('skip', skip);
-    if (limit) params.append('limit', limit);
-    if (genre) params.append('genre', genre);
-    if (search) params.append('search', search);
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
+  // Simplified content API endpoints - using new backend API
+
+  // Get catalog content by type and category
+  async getCatalog(type = 'movie', category = 'top') {
+    console.log('🔍 getCatalog called:', { type, category });
+    try {
+      const result = await this.request(`/content/discover/${type}/${category}`);
+      console.log('🔍 getCatalog result:', result);
+      // Return the data array directly for backward compatibility
+      return result.success ? result.data : [];
+    } catch (error) {
+      console.error('❌ getCatalog error:', error);
+      // Return empty array as fallback to maintain compatibility
+      return [];
     }
-    
-    return this.request(url);
   }
-  
+
   // Get metadata for a specific item
-  async getStremioMetadata(type, id) {
-    console.log('🔍 DEBUG: Frontend API - getStremioMetadata called:', { type, id });
+  async getMetadata(id, type = 'movie') {
+    console.log('🔍 getMetadata called:', { id, type });
     try {
-      const result = await this.request(`/api/stremio/meta/${type}/${id}`);
-      console.log('🔍 DEBUG: Frontend API - getStremioMetadata result:', result);
-      return result;
+      const result = await this.request(`/content/meta/${id}?type=${type}`);
+      console.log('🔍 getMetadata result:', result);
+      // Return the data directly for backward compatibility
+      return result.success ? result.data : null;
     } catch (error) {
-      console.error('❌ DEBUG: Frontend API - getStremioMetadata error:', error);
-      throw error;
+      console.error('❌ getMetadata error:', error);
+      return null;
     }
   }
-  
+
   // Get streams for a specific item
-  async getStremioStreams(type, id) {
-    console.log('🔍 DEBUG: Frontend API - getStremioStreams called:', { type, id });
+  async getStreams(id, type = 'movie') {
+    console.log('🔍 getStreams called:', { id, type });
     try {
-      const result = await this.request(`/api/stremio/stream/${type}/${id}`);
-      console.log('🔍 DEBUG: Frontend API - getStremioStreams result:', result);
-      return result;
+      const result = await this.request(`/content/stream/${id}?type=${type}`);
+      console.log('🔍 getStreams result:', result);
+      // Return the data array directly for backward compatibility
+      return result.success ? result.data : [];
     } catch (error) {
-      console.error('❌ DEBUG: Frontend API - getStremioStreams error:', error);
-      throw error;
+      console.error('❌ getStreams error:', error);
+      // Return empty array as fallback to maintain compatibility
+      return [];
     }
   }
-  
+
   // Search for content
-  async stremioSearch(type, query) {
+  async search(query, type = 'multi') {
     if (!query) {
       throw new Error('Search query is required');
     }
-    
-    return this.request(`/stremio/search/${type}?query=${encodeURIComponent(query)}`);
-  }
-  
-  // Legacy methods for backward compatibility
-  async getStreamingSources(type, id) {
-    console.warn('getStreamingSources is deprecated, use getStremioStreams instead');
-    return this.getStremioStreams(type, id);
-  }
-  
-  async getStremioMetadataByTmdb(type, tmdbId) {
-    console.warn('getStremioMetadataByTmdb is deprecated, use getStremioMetadata instead');
-    // This is a fallback that might not work with the new API
-    // The new API expects Stremio IDs, not TMDB IDs
-    return this.request(`/stremio/meta/${type}/${tmdbId}`);
-  }
 
-  // User library methods
-  async getUserLibrary() {
+    console.log('🔍 search called:', { query, type });
     try {
-      console.group('📚 API Debug - getUserLibrary');
-      
-      // Try to get user library from local storage first
+      const result = await this.request(`/content/search/${encodeURIComponent(query)}`);
+      console.log('🔍 search result:', result);
+      // Return the data array directly for backward compatibility
+      return result.success ? result.data : [];
+    } catch (error) {
+      console.error('❌ search error:', error);
+      // Return empty array as fallback to maintain compatibility
+      return [];
+    }
+  }
+  
+
+  // Simplified library methods using new backend API
+  async getLibrary() {
+    try {
+      console.log('📚 getLibrary called');
+
+      // Try to get library from local storage first for quick access
       const localLibrary = localStorage.getItem('user_library');
-      console.log('💾 Local storage library:', localLibrary ? JSON.parse(localLibrary) : 'Not found');
-      
       if (localLibrary) {
         const parsed = JSON.parse(localLibrary);
-        console.log('✅ Returning local library with', parsed.length, 'items');
-        console.groupEnd();
+        console.log('✅ Returning cached library with', parsed.length, 'items');
         return parsed;
       }
-      
-      // Try to get from addon catalogs
-      console.log('🔍 Attempting to load from addon catalogs...');
-      const addons = await this.getAddons();
-      console.log('📦 Available addons:', addons.length);
-      
-      let allContent = [];
-      
-      for (const addon of addons) {
-        if (addon.enabled) {
-          console.log(`🔄 Loading from addon: ${addon.name} (${addon.id})`);
-          try {
-            // Try to get movie catalog
-            const movieCatalog = await this.getAddonCatalog(addon.id, 'movie', 'top');
-            console.log(`📽️  Movies from ${addon.name}:`, movieCatalog?.metas?.length || 0);
-            if (movieCatalog?.metas) {
-              allContent = [...allContent, ...movieCatalog.metas.map(item => ({
-                ...item,
-                type: 'movie',
-                source: addon.name
-              }))];
-            }
-            
-            // Try to get series catalog
-            const seriesCatalog = await this.getAddonCatalog(addon.id, 'series', 'top');
-            console.log(`📺 Series from ${addon.name}:`, seriesCatalog?.metas?.length || 0);
-            if (seriesCatalog?.metas) {
-              allContent = [...allContent, ...seriesCatalog.metas.map(item => ({
-                ...item,
-                type: 'series',
-                source: addon.name
-              }))];
-            }
-          } catch (error) {
-            console.warn(`⚠️ Failed to load from ${addon.name}:`, error.message);
-          }
-        }
-      }
-      
-      console.log('📊 Total content loaded:', allContent.length);
-      console.log('📋 Content sources:', [...new Set(allContent.map(item => item.source))]);
-      
-      // Save to local storage for next time
+
+      // Get content from multiple sources via the simplified API
+      const [movies, series] = await Promise.all([
+        this.getCatalog('movie', 'top'),
+        this.getCatalog('series', 'top')
+      ]);
+
+      const allContent = [
+        ...movies.map(item => ({ ...item, type: 'movie' })),
+        ...series.map(item => ({ ...item, type: 'series' }))
+      ];
+
+      console.log('📊 Total library content loaded:', allContent.length);
+
+      // Cache the library for future use
       if (allContent.length > 0) {
         localStorage.setItem('user_library', JSON.stringify(allContent));
-        console.log('💾 Saved to local storage');
+        console.log('💾 Saved library to local storage');
       }
-      
-      console.groupEnd();
+
       return allContent;
     } catch (error) {
-      console.error('❌ Error fetching user library:', error);
-      console.groupEnd();
+      console.error('❌ Error fetching library:', error);
+      // Return empty array as fallback to maintain compatibility
       return [];
     }
   }
 
-  // Sync addons and load content
-  async syncLibraryContent() {
-    try {
-      console.group('🔄 API Debug - syncLibraryContent');
-      
-      const addons = await this.getAddons();
-      console.log('📦 Available addons for sync:', addons.length);
-      
-      let allContent = [];
-      
-      for (const addon of addons) {
-        if (addon.enabled) {
-          console.log(`🔄 Syncing with addon: ${addon.name} (${addon.id})`);
-          try {
-            // Get movie catalog
-            const movieCatalog = await this.getAddonCatalog(addon.id, 'movie', 'top');
-            if (movieCatalog?.metas) {
-              allContent = [...allContent, ...movieCatalog.metas.map(item => ({
-                ...item,
-                type: 'movie',
-                source: addon.name
-              }))];
-            }
-            
-            // Get series catalog
-            const seriesCatalog = await this.getAddonCatalog(addon.id, 'series', 'top');
-            if (seriesCatalog?.metas) {
-              allContent = [...allContent, ...seriesCatalog.metas.map(item => ({
-                ...item,
-                type: 'series',
-                source: addon.name
-              }))];
-            }
-          } catch (error) {
-            console.warn(`⚠️ Failed to sync with ${addon.name}:`, error.message);
-          }
-        }
-      }
-      
-      console.log('📊 Total content synced:', allContent.length);
-      
-      // Save to local storage
-      localStorage.setItem('user_library', JSON.stringify(allContent));
-      console.log('💾 Saved synced content to local storage');
-      
-      console.groupEnd();
-      return allContent;
-    } catch (error) {
-      console.error('❌ Error syncing addons:', error);
-      console.groupEnd();
-      return [];
-    }
-  }
 
-  // Updated Stremio catalog endpoints
-  async getAddonCatalog(addonId, type, catalogId, options = {}) {
-    try {
-      console.group(`🔍 API Debug - getAddonCatalog for ${addonId}`);
-      console.log(`📋 Parameters: type=${type}, catalogId=${catalogId}`);
-      console.log(`📋 Options:`, options);
-      
-      // Use the new unified catalog endpoint
-      const { skip, limit, genre, search } = options;
-      
-      // For backward compatibility, we'll map the addon ID to the catalog ID
-      // In the new API, we don't specify the addon ID in the URL
-      const catalogIdToUse = addonId === 'cinemeta' ? 'top' : catalogId;
-      
-      console.log(`🔄 Using catalog ID: ${catalogIdToUse}`);
-      console.log(`🔄 Calling getStremioCatalog(${type}, ${catalogIdToUse}, ...)`);
-      
-      const result = await this.getStremioCatalog(type, catalogIdToUse, options);
-      
-      console.log(`✅ Received ${result.metas?.length || 0} items`);
-      console.groupEnd();
-      return result;
-    } catch (error) {
-      console.error(`❌ Error fetching addon catalog for ${addonId}:`, error);
-      console.groupEnd();
-      throw new Error(`Failed to load catalog from ${addonId}: ${error.message}`);
-    }
-  }
-
-  async getStremioSubtitles(type, id, options = {}) {
-    const { videoID, videoSize } = options;
-    let url = `/stremio/subtitles/${type}/${id}`;
-    
-    const params = new URLSearchParams();
-    if (videoID) params.append('videoID', videoID);
-    if (videoSize) params.append('videoSize', videoSize);
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-    
-    return this.request(url);
-  }
-
-  // Install and manage addons
-  async installAddon(addonUrl) {
-    console.group('🔌 API Debug - installAddon');
-    console.log(`🔍 Installing addon from URL: ${addonUrl}`);
-    
-    try {
-      // Use the provided URL instead of hardcoding it
-      const response = await this.request('/stremio/install-addon', {
-        method: 'POST',
-        body: JSON.stringify({ addonUrl })
-      });
-      
-      console.log('📋 Installation response:', response);
-      console.groupEnd();
-      return response;
-    } catch (error) {
-      console.error('❌ Error installing addon:', error);
-      console.groupEnd();
-      throw error;
-    }
-  }
-
-  async getAddonManifest(addonId) {
-    return this.request(`/stremio/addon/${addonId}/manifest`);
-  }
-  
-  // Sync addons from backend
-  async syncAddons() {
-    try {
-      console.group('🔄 API Debug - syncAddons');
-      console.log('🔄 Fetching updated addons from backend...');
-      
-      // Call the backend endpoint to sync addons
-      const response = await this.request('/api/stremio/addons');
-      const addons = response.addons || [];
-      
-      console.log(`✅ Received ${addons.length} addons from backend`);
-      console.groupEnd();
-      
-      return addons;
-    } catch (error) {
-      console.error('❌ Error syncing addons:', error);
-      console.groupEnd();
-      throw new Error(`Failed to sync addons: ${error.message}`);
-    }
-  }
-  
-  async getAddons() {
-    try {
-      const response = await this.request('/api/stremio/addons');
-      return response.addons || [];
-    } catch (error) {
-      console.error('Error fetching addon metadata:', error);
-      throw new Error(`Failed to load addons: ${error.message}`);
-    }
-  }
-
-  async getAvailableAddons() {
-    try {
-      const response = await this.request('/api/stremio/addons/available');
-      return response.addons || [];
-    } catch (error) {
-      console.error('Error fetching available addons:', error);
-      throw new Error(`Failed to load available addons: ${error.message}`);
-    }
-  }
 
   async getMovieDetails(tmdbId) {
     return this.request(`/tmdb/movie/${tmdbId}?append_to_response=credits,videos,similar`);

@@ -13,16 +13,28 @@ function Search() {
 
   const handleSearch = async () => {
     if (!query.trim()) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const searchResults = await ApiService.stremioSearch(searchType, query);
-      setResults(searchResults.metas || []);
+      console.log('🔍 Searching for:', { query, searchType });
+      const searchResults = await ApiService.search(query, searchType);
+      console.log('📋 Search results:', searchResults);
+
+      // Normalize the results to ensure they have required fields
+      const normalizedResults = (searchResults || []).map(item => ({
+        ...item,
+        title: item.title || item.name || 'Unknown Title',
+        id: item.id || `unknown-${Math.random().toString(36).substring(7)}`,
+        type: item.type || searchType
+      }));
+
+      setResults(normalizedResults);
     } catch (err) {
       console.error('Search failed:', err);
       setError(err.message);
+      setResults([]);
     } finally {
       setIsLoading(false);
     }

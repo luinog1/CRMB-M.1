@@ -17,27 +17,39 @@ class StremioAddonClient {
 
   /**
    * Initialize the addon client by loading all configured addons
-   */
-  async initialize() {
-    console.log('🔄 Initializing StremioAddonClient...');
-    console.log('Addons to load:', addonsConfig.addons.filter(addon => addon.enabled).map(a => a.url));
-    console.log('🔄 Initializing StremioAddonClient...');
-    
-    try {
-      // Load all enabled addons from config
-      const loadPromises = addonsConfig.addons
-        .filter(addon => addon.enabled)
-        .map(addon => this.loadAddon(addon.url));
-      
-      await Promise.allSettled(loadPromises);
-      
-      console.log(`✅ Loaded ${this.addons.size} Stremio addons`);
-      return true;
-    } catch (error) {
-      console.error('❌ Error initializing StremioAddonClient:', error);
-      return false;
-    }
-  }
+    */
+   async initialize() {
+     console.log('🔄 Initializing StremioAddonClient...');
+     const enabledAddons = addonsConfig.addons.filter(addon => addon.enabled);
+     console.log('Addons to load:', enabledAddons.map(a => `${a.name} (${a.url})`));
+
+     try {
+       // Load all enabled addons from config
+       const loadPromises = enabledAddons.map(addon => this.loadAddon(addon.url));
+
+       const results = await Promise.allSettled(loadPromises);
+
+       // Analyze results
+       const successful = results.filter(result => result.status === 'fulfilled' && result.value).length;
+       const failed = results.filter(result => result.status === 'rejected' || !result.value).length;
+
+       console.log(`✅ Addon initialization complete: ${successful} successful, ${failed} failed`);
+
+       if (successful === 0) {
+         console.error('❌ No addons could be loaded! The application may not function properly.');
+         return false;
+       }
+
+       if (failed > 0) {
+         console.warn(`⚠️  ${failed} addons failed to load, but ${successful} are working`);
+       }
+
+       return true;
+     } catch (error) {
+       console.error('❌ Error initializing StremioAddonClient:', error);
+       return false;
+     }
+   }
 
   /**
    * Load an addon from a URL
@@ -81,6 +93,32 @@ class StremioAddonClient {
    */
   getAvailableAddons() {
     return addonsConfig.addons;
+  }
+
+  /**
+   * Get health status of all addons
+   * @returns {Object} - Health status report
+   */
+  getAddonHealthStatus() {
+    const enabledAddons = addonsConfig.addons.filter(addon => addon.enabled);
+    const loadedAddons = Array.from(this.addons.keys());
+
+    const status = {
+      total: enabledAddons.length,
+      loaded: loadedAddons.length,
+      failed: enabledAddons.length - loadedAddons.length,
+      catalogSupport: Array.from(this.addons.values()).filter(item => item.manifest.resources.includes('catalog')).length,
+      streamSupport: Array.from(this.addons.values()).filter(item => item.manifest.resources.includes('stream')).length,
+      metaSupport: Array.from(this.addons.values()).filter(item => item.manifest.resources.includes('meta')).length,
+      details: enabledAddons.map(addon => ({
+        id: addon.id,
+        name: addon.name,
+        loaded: loadedAddons.includes(addon.id),
+        resources: addon.resources
+      }))
+    };
+
+    return status;
   }
 
   /**
@@ -389,8 +427,61 @@ class StremioAddonClient {
     return response;
   }
 
-  /**
-   * Get item from cache if not expired
+ /**
+  * Search across loaded addons
+  * @param {object} args - The search request arguments
+  * @returns {Promise<object>} - The search response
+  */
+ async search(args) {
+   const { query } = args;
+   console.log(`🔍 Searching across external addons: query=${query}`);
+   
+   // Find addons that support search
+   const supportingAddons = Array.from(this.addons.values()).filter(item => {
+     return item.manifest.resources.some(resource =>
+       typeof resource === 'string' ? resource === 'catalog' :
+       resource.name === 'catalog' && resource.types.includes('search')
+     );
+   });
+   
+   console.log(`📊 Found ${supportingAddons.length} addons supporting search`);
+   
+   if (supportingAddons.length === 0) {
+     return { metas: [] };
+   }
+   
+   // Collect results from all supporting addons
+   const results = await Promise.allSettled(
+     supportingAddons.map(async (addon) => {
+       try {
+         // Use the addon client's get method with search parameter
+         const response = await addon.client.get('catalog', 'search', '', { search: query });
+         return response && response.metas ? response.metas : [];
+       } catch (error) {
+         console.error(`❌ Error searching in ${addon.manifest.name}:`, error);
+         return [];
+       }
+     })
+   );
+   
+   // Combine results from all addons
+   const allMetas = results
+     .filter(result => result.status === 'fulfilled')
+     .flatMap(result => result.value);
+   
+   // Remove duplicates based on id
+   const uniqueMetas = Array.from(
+     new Map(allMetas.map(meta => [meta.id, meta])).values()
+   );
+   
+   const response = { metas: uniqueMetas };
+   
+   console.log(`📊 Total search results from external addons: ${uniqueMetas.length}`);
+   return response;
+ }
+
+ /**
+  * Get item from cache if not expired
    * @param {string} key - Cache key
    * @returns {object|null} - Cached item or null if not found or expired
    */

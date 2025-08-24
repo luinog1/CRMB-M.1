@@ -12,15 +12,6 @@ module.exports = {
       description: 'Basic metadata for movies and series',
       resources: ['catalog', 'meta'],
       types: ['movie', 'series'],
-      enabled: false
-    },
-    {
-      id: 'crmb-addon',
-      name: 'CRMB Addon',
-      url: `${process.env.BASE_URL || 'http://localhost:3001'}/manifest.json`,
-      description: 'Content discovery and streaming addon for CRMB',
-      resources: ['catalog', 'meta', 'stream'],
-      types: ['movie', 'series'],
       enabled: true
     },
     {
@@ -33,23 +24,16 @@ module.exports = {
       enabled: true
     },
     {
-      id: 'orion',
-      name: 'Orion',
-      url: 'https://api.orionoid.com/manifest.json',
-      description: 'Premium streaming links aggregator',
-      resources: ['stream'],
+      id: 'opensubtitles',
+      name: 'OpenSubtitles',
+      url: 'https://opensubtitles-v3.strem.io/manifest.json',
+      description: 'Subtitle addon for movies and series',
+      resources: ['subtitles'],
       types: ['movie', 'series'],
       enabled: true
     },
-    {
-      id: 'jackettio',
-      name: 'Jackettio',
-      url: 'https://jackettio.strem.fun/manifest.json',
-      description: 'Jackett indexer integration',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-      enabled: true
-    }
+    // Note: YouTube trailer addon removed due to URL issues
+    // Focus on core functionality with working addons
     // Additional addons can be added here
   ]
 };

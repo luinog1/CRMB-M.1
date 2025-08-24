@@ -123,7 +123,28 @@ async function runTests() {
   } catch (error) {
     console.error('❌ Error fetching movie streams:', error);
   }
-  
+
+  // Test search
+  console.log('\n🔍 Testing search...');
+  try {
+    const searchResults = await addonClient.search({
+      query: 'Game of Thrones'
+    });
+
+    console.log(`✅ Search results fetched: ${searchResults.metas ? searchResults.metas.length : 0} items`);
+
+    if (searchResults.metas && searchResults.metas.length > 0) {
+      console.log('📝 First search result:');
+      console.log(`  - ID: ${searchResults.metas[0].id}`);
+      console.log(`  - Name: ${searchResults.metas[0].name}`);
+      console.log(`  - Type: ${searchResults.metas[0].type}`);
+    } else {
+      console.log('⚠️ No search results found');
+    }
+  } catch (error) {
+    console.error('❌ Error testing search:', error);
+  }
+
   // Test addon management
   console.log('\n🔍 Testing addon management...');
   
