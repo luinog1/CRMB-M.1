@@ -226,21 +226,43 @@ const getAddonContent = async (req, res) => {
  */
 const searchContent = async (req, res) => {
   const { query } = req.params;
+  const { type = 'movie' } = req.query;
 
-  console.log(`🔍 searchContent: query=${query}`);
+  console.log(`🔍 searchContent: query=${query}, type=${type}`);
 
   try {
-    // Search across all addons
-    const searchResults = await addonClient.search({ query });
-    const addonData = searchResults.metas || [];
-
-    // If no results from addons, provide mock search results
-    let searchData = addonData;
+    // Search across all addons - try catalog search first (more reliable)
+    let searchData = [];
     let dataSource = 'addons_search';
 
-    if (addonData.length === 0) {
+    // Get all addons that support catalog operations
+    const allAddons = addonClient.getAddons();
+    console.log(`📊 Found ${allAddons.length} total addons for search`);
+
+    // Try searching through catalog for each addon that supports catalog
+    for (const addon of allAddons) {
+      if (addon.resources && addon.resources.includes('catalog')) {
+        try {
+          console.log(`🔍 Searching in ${addon.name}...`);
+          const searchResults = await addonClient.client.get('catalog', type, 'search', { search: query });
+          if (searchResults && searchResults.metas && searchResults.metas.length > 0) {
+            searchData.push(...searchResults.metas);
+          }
+        } catch (addonError) {
+          console.warn(`⚠️ Search failed for ${addon.name}:`, addonError.message);
+        }
+      }
+    }
+
+    // Remove duplicates based on id
+    searchData = Array.from(
+      new Map(searchData.map(meta => [meta.id, meta])).values()
+    );
+
+    // If no results from addons, provide mock search results
+    if (searchData.length === 0) {
       console.warn('⚠️ No search results from addons, using mock data fallback');
-      const mockResults = generateMockContent('movie', 'top', 10).filter(item =>
+      const mockResults = generateMockContent(type === 'series' ? 'tv' : 'movie', 'top', 10).filter(item =>
         item.name.toLowerCase().includes(query.toLowerCase())
       );
       searchData = mockResults;
@@ -253,9 +275,11 @@ const searchContent = async (req, res) => {
       data: searchData,
       metadata: {
         query,
+        type,
         timestamp: new Date().toISOString(),
         source: dataSource,
-        resultCount: searchData.length
+        resultCount: searchData.length,
+        addonCount: allAddons.length
       }
     };
 

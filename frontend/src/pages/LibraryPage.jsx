@@ -1,80 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import MovieCard from '../components/MovieCard';
-import ApiService from '../services/api';
-import { useApp } from '../context/AppContext';
 
 const LibraryPage = () => {
-  const { settings } = useApp();
-  const [libraryContent, setLibraryContent] = useState([]);
-  const [watchlist, setWatchlist] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('collection');
-  const [viewMode, setViewMode] = useState('grid');
+   const [watchlist, setWatchlist] = useState([]);
+   const [favorites, setFavorites] = useState([]);
+   const [isLoading, setIsLoading] = useState(true);
+   const [activeTab, setActiveTab] = useState('favorites');
+   const [viewMode, setViewMode] = useState('grid');
 
   useEffect(() => {
-    const loadLibraryContent = async () => {
-      setIsLoading(true);
+     const loadPersonalContent = async () => {
+       setIsLoading(true);
 
-      console.group('🔍 LibraryPage Debug - Data Loading');
-      console.log('📂 Starting library content load...');
+       console.group('🔍 LibraryPage Debug - Data Loading');
+       console.log('📂 Starting personal content load...');
 
-      try {
-        // Load library content using the new unified API
-        console.log('📚 Loading library content from unified API...');
-        const libraryData = await ApiService.getLibrary();
-        console.log('📋 Library content loaded:', libraryData);
-        console.log('📊 Library content count:', libraryData?.length || 0);
+       try {
+         // Load watchlist and favorites from local storage only
+         console.log('💾 Loading watchlist from localStorage...');
+         const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+         console.log('📋 Watchlist loaded:', savedWatchlist);
+         console.log('📊 Watchlist count:', savedWatchlist.length);
 
-        if (libraryData && libraryData.length > 0) {
-          console.log('✅ Setting library content from unified API');
-          setLibraryContent(libraryData);
-        } else {
-          console.log('⚠️ No library content found');
-          setLibraryContent([]);
-        }
+         console.log('💾 Loading favorites from localStorage...');
+         const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+         console.log('⭐ Favorites loaded:', savedFavorites);
+         console.log('📊 Favorites count:', savedFavorites.length);
 
-        // Load watchlist and favorites from local storage
-        console.log('💾 Loading watchlist from localStorage...');
-        const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-        console.log('📋 Watchlist loaded:', savedWatchlist);
-        console.log('📊 Watchlist count:', savedWatchlist.length);
+         setWatchlist(savedWatchlist);
+         setFavorites(savedFavorites);
 
-        console.log('💾 Loading favorites from localStorage...');
-        const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-        console.log('⭐ Favorites loaded:', savedFavorites);
-        console.log('📊 Favorites count:', savedFavorites.length);
+         console.log('📊 Final state summary:');
+         console.log('  - Watchlist:', savedWatchlist.length);
+         console.log('  - Favorites:', savedFavorites.length);
+         console.log('  - Total items:', savedWatchlist.length + savedFavorites.length);
 
-        setWatchlist(savedWatchlist);
-        setFavorites(savedFavorites);
+       } catch (error) {
+         console.error('❌ Failed to load personal content:', error);
+         console.error('Error details:', {
+           message: error.message,
+           stack: error.stack
+         });
+         // Set empty arrays as fallback
+         setWatchlist([]);
+         setFavorites([]);
+       } finally {
+         console.groupEnd();
+         setIsLoading(false);
+       }
+     };
 
-        console.log('📊 Final state summary:');
-        console.log('  - Library content:', libraryData?.length || 0);
-        console.log('  - Watchlist:', savedWatchlist.length);
-        console.log('  - Favorites:', savedFavorites.length);
-        console.log('  - Total items:', (libraryData?.length || 0) + savedWatchlist.length + savedFavorites.length);
-
-      } catch (error) {
-        console.error('❌ Failed to load library content:', error);
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack
-        });
-        // Set empty arrays as fallback
-        setLibraryContent([]);
-        setWatchlist([]);
-        setFavorites([]);
-      } finally {
-        console.groupEnd();
-        setIsLoading(false);
-      }
-    };
-
-    loadLibraryContent();
-  }, []);
+     loadPersonalContent();
+   }, []);
 
   const getTotalItems = () => {
-    return libraryContent.length + watchlist.length + favorites.length;
+    return watchlist.length + favorites.length;
   };
 
   const handleContinueWatching = () => {
@@ -82,17 +62,12 @@ const LibraryPage = () => {
     console.log('Continue watching clicked');
   };
 
-  const handleViewAll = (type) => {
-    setActiveTab(type);
-  };
-
   const getCurrentContent = () => {
     console.group('📊 LibraryPage Debug - Content Selection');
     console.log('🎯 Active tab:', activeTab);
     console.log('📋 Watchlist items:', watchlist.length);
     console.log('⭐ Favorites items:', favorites.length);
-    console.log('📚 Library content items:', libraryContent.length);
-    
+
     let content;
     switch (activeTab) {
       case 'watchlist':
@@ -100,30 +75,17 @@ const LibraryPage = () => {
         console.log('📋 Returning watchlist content:', content);
         break;
       case 'favorites':
+      default:
         content = favorites;
         console.log('⭐ Returning favorites content:', content);
         break;
-      default:
-        content = libraryContent;
-        console.log('📚 Returning library content:', content);
-        break;
     }
-    
+
     console.log('📊 Final content count:', content.length);
     console.groupEnd();
     return content;
   };
 
-  const getCurrentContentCount = () => {
-    switch (activeTab) {
-      case 'watchlist':
-        return watchlist.length;
-      case 'favorites':
-        return favorites.length;
-      default:
-        return libraryContent.length;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -142,14 +104,14 @@ const LibraryPage = () => {
       <div className="page-header">
         <h1 className="page-title">My Library</h1>
         <p className="page-description">
-          Manage your personal collection of movies and shows. Keep track of what you want to watch and save your favorites for easy access.
+          Manage your personal favorites and watchlist. Keep track of what you want to watch and save your favorite movies and shows for easy access.
         </p>
       </div>
 
       {/* Action Buttons */}
       <div className="action-buttons">
         <button className="btn btn-secondary">
-          Your Collection • {getTotalItems()} items
+          Personal Items • {getTotalItems()} items
         </button>
         <button className="btn btn-primary" onClick={handleContinueWatching}>
           <svg className="btn-icon" fill="currentColor" viewBox="0 0 24 24">
@@ -185,8 +147,8 @@ const LibraryPage = () => {
             <span className="stat-label">Total Items</span>
           </div>
           <div className="summary-stat">
-            <span className="stat-value">{libraryContent.length}</span>
-            <span className="stat-label">Library Items</span>
+            <span className="stat-value">{favorites.length}</span>
+            <span className="stat-label">Favorites</span>
           </div>
           <div className="summary-stat">
             <span className="stat-value">{watchlist.length}</span>
@@ -261,20 +223,13 @@ const LibraryPage = () => {
                 <svg className="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
-                <h3 className="empty-state-title">No {activeTab === 'watchlist' ? 'Watchlist' : activeTab === 'favorites' ? 'Favorites' : 'Collection'} Items</h3>
+                <h3 className="empty-state-title">No {activeTab === 'watchlist' ? 'Watchlist' : 'Favorites'} Items</h3>
                 <p className="empty-state-description">
                   {activeTab === 'watchlist'
                     ? 'Add movies and shows to your watchlist to keep track of what you want to watch.'
-                    : activeTab === 'favorites'
-                    ? 'Mark your favorite movies and shows to easily find them later.'
-                    : 'Your collection is empty. Content will appear here as you discover and save movies and shows.'
+                    : 'Mark your favorite movies and shows to easily find them later.'
                   }
                 </p>
-                {activeTab === 'collection' && (
-                  <button className="btn btn-primary" onClick={() => window.location.href = '/settings'}>
-                    Configure Services
-                  </button>
-                )}
               </div>
             );
           }

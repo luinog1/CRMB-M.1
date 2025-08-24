@@ -48,9 +48,9 @@ body {
   position: relative;
 }
 
-/* Sidebar - Updated to match Figma design */
+/* Sidebar - Updated to match Figma design with expandable feature */
 .sidebar {
-  width: 80px;
+  width: 64px;
   background: var(--secondary-background);
   padding: 20px 0;
   display: flex;
@@ -65,67 +65,126 @@ body {
   z-index: 100;
   flex-shrink: 0;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  transition: width 0.3s ease;
+  overflow: hidden;
 }
 
-.sidebar-logo {
-  width: 48px;
-  height: 48px;
-  background: var(--button-primary);
-  border-radius: 12px;
+.sidebar:hover {
+  width: 260px;
+}
+
+.sidebar.expanded {
+  width: 260px;
+}
+
+.logo {
+  padding: 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  min-height: 64px;
+  width: 100%;
+  justify-content: center;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
-.sidebar-logo svg {
-  width: 36px;
-  height: 36px;
-  color: var(--button-text-primary);
+.logo-icon svg {
+  width: 18px;
+  height: 18px;
+  color: var(--primary-background);
 }
 
-.sidebar-item {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+
+.sidebar:hover .logo-text,
+.sidebar.expanded .logo-text {
+  opacity: 1;
+}
+
+.nav-menu {
+  flex: 1;
+  padding: 16px 0;
+  width: 100%;
+}
+
+.nav-item {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 16px;
+  padding: 14px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 2px;
+  white-space: nowrap;
   position: relative;
+  border: none;
+  background: none;
+  width: 100%;
 }
 
-.sidebar-item:hover {
-  background: var(--card-hover);
+.nav-item span {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-weight: 500;
 }
 
-.sidebar-item.active {
-  background: var(--active-bg);
+.sidebar:hover .nav-item span,
+.sidebar.expanded .nav-item span {
+  opacity: 1;
 }
 
-.sidebar-item.active::after {
+.nav-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-item.active::after {
   content: '';
   position: absolute;
-  right: -8px;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 2px;
-  height: 20px;
-  background: var(--text-primary);
-  border-radius: 1px;
+  width: 3px;
+  height: 24px;
+  background: #ffffff;
+  border-radius: 2px 0 0 2px;
 }
 
-.sidebar-item svg {
-  width: 36px;
-  height: 36px;
-  color: var(--text-primary);
+.nav-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 /* Main Content Area - Fixed positioning to prevent sidebar overlap */
 .main-content {
   flex: 1;
-  margin-left: 80px; /* Match sidebar width exactly */
+  margin-left: 64px; /* Match sidebar width exactly */
   padding: 0;
   background: var(--primary-background);
   min-width: 0; /* Prevent flex item from overflowing */
@@ -133,6 +192,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left 0.3s ease;
 }
 
 /* Header - Updated to match Figma design */
@@ -260,25 +320,76 @@ body {
   align-items: center;
   gap: 8px;
   text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .btn-primary {
   background: var(--button-primary);
   color: var(--button-text-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--accent-secondary);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
   background: var(--button-secondary);
   color: var(--button-text-secondary);
   border: 1px solid var(--border-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: var(--card-hover);
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
 }
 
 .btn-icon {

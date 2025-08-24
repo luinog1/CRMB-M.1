@@ -12,6 +12,7 @@ const HomePage = () => {
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [newReleases, setNewReleases] = useState([]);
   const [popularMovies, setPopularMovies] = useState([]);
+  const [popularSeries, setPopularSeries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasContent, setHasContent] = useState(false);
 
@@ -53,8 +54,8 @@ const HomePage = () => {
             console.warn('⚠️ No trending movies received');
           }
 
-          // Get popular movies/series for additional content
-          console.log('🔍 Fetching popular content...');
+          // Get popular movies for additional content
+          console.log('🔍 Fetching popular movies...');
           const popularMoviesData = await ApiService.getCatalog('movie', 'popular');
           console.log('📋 Popular movies response:', popularMoviesData);
 
@@ -69,6 +70,24 @@ const HomePage = () => {
             }));
 
             setPopularMovies(normalizedPopular.slice(0, 6));
+          }
+
+          // Get popular series
+          console.log('🔍 Fetching popular series...');
+          const popularSeriesData = await ApiService.getCatalog('series', 'popular');
+          console.log('📋 Popular series response:', popularSeriesData);
+
+          if (popularSeriesData && popularSeriesData.length > 0) {
+            console.log(`✅ Received ${popularSeriesData.length} popular series`);
+
+            const normalizedSeries = popularSeriesData.map(item => ({
+              ...item,
+              title: item.title || item.name || 'Unknown Title',
+              id: item.id || `unknown-${Math.random().toString(36).substring(7)}`,
+              type: item.type || 'series'
+            }));
+
+            setPopularSeries(normalizedSeries.slice(0, 6));
           }
 
           // Get new releases if available
@@ -108,17 +127,44 @@ const HomePage = () => {
 
   const handlePlay = (movie) => {
     console.log('Playing:', movie.title || movie.name);
-    // TODO: Implement play functionality
+    // Implement play functionality
+    if (movie && movie.id) {
+      // Navigate to detail page with play action
+      navigate(`/detail/${movie.type || 'movie'}/${movie.id}`, {
+        state: { action: 'play' }
+      });
+    } else {
+      console.error('Invalid movie data for play action');
+    }
   };
 
   const handleMoreInfo = (movie) => {
     console.log('More info for:', movie.title || movie.name);
-    // TODO: Navigate to detail page
+    // Navigate to detail page
+    if (movie && movie.id) {
+      navigate(`/detail/${movie.type || 'movie'}/${movie.id}`);
+    } else {
+      console.error('Invalid movie data for more info');
+    }
   };
 
   const handleAddToMyList = (movie) => {
     console.log('Added to my list:', movie.title);
-    // TODO: Implement add to list functionality
+    // Implement add to list functionality
+    if (movie && movie.id) {
+      // Add to user's list
+      ApiService.addToMyList(movie.id, movie.type || 'movie')
+        .then(() => {
+          console.log('Successfully added to my list');
+          // You might want to show a success notification here
+        })
+        .catch(error => {
+          console.error('Failed to add to my list:', error);
+          // You might want to show an error notification here
+        });
+    } else {
+      console.error('Invalid movie data for add to list');
+    }
   };
 
   const handleConfigureSettings = () => {
@@ -304,7 +350,7 @@ const HomePage = () => {
       {popularMovies.length > 0 && (
         <div className="content-section">
           <div className="section-header">
-            <h2 className="section-title">Popular</h2>
+            <h2 className="section-title">Popular Movies</h2>
             <button className="view-all" onClick={handleViewAll}>View All</button>
           </div>
           <div className="movie-grid">
@@ -312,6 +358,25 @@ const HomePage = () => {
               <MovieCard
                 key={movie.id}
                 movie={movie}
+                onPlay={handlePlay}
+                onMoreInfo={handleMoreInfo}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {popularSeries.length > 0 && (
+        <div className="content-section">
+          <div className="section-header">
+            <h2 className="section-title">Popular Series</h2>
+            <button className="view-all" onClick={handleViewAll}>View All</button>
+          </div>
+          <div className="movie-grid">
+            {popularSeries.map((series) => (
+              <MovieCard
+                key={series.id}
+                movie={series}
                 onPlay={handlePlay}
                 onMoreInfo={handleMoreInfo}
               />

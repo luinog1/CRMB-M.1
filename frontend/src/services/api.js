@@ -175,10 +175,69 @@ class ApiService {
 
     console.log('🔍 search called:', { query, type });
     try {
-      const result = await this.request(`/content/search/${encodeURIComponent(query)}`);
-      console.log('🔍 search result:', result);
-      // Return the data array directly for backward compatibility
-      return result.success ? result.data : [];
+      // Try multiple search approaches for better results
+
+      // 1. First try the content search endpoint with type parameter
+      let result = await this.request(`/content/search/${encodeURIComponent(query)}?type=${type}`);
+      console.log('🔍 content search result:', result);
+
+      let searchResults = [];
+      if (result.success && result.data && result.data.length > 0) {
+        searchResults = result.data;
+      } else {
+        // 2. If no results, try TMDB search as fallback
+        try {
+          const tmdbResult = await this.request(`/tmdb/search?query=${encodeURIComponent(query)}&type=${type}&page=1`);
+          if (tmdbResult.success && tmdbResult.data) {
+            searchResults = tmdbResult.data;
+          }
+        } catch (tmdbError) {
+          console.warn('TMDB search fallback failed:', tmdbError);
+        }
+      }
+
+      // 3. Normalize and enhance results with metadata
+      const normalizedResults = await Promise.all(searchResults.map(async (item) => {
+        try {
+          // Try to get additional metadata for better search results
+          if (item.id && item.type) {
+            const metadata = await this.request(`/content/meta/${item.id}?type=${item.type}`).catch(() => null);
+            if (metadata && metadata.success && metadata.data) {
+              return {
+                ...item,
+                ...metadata.data,
+                title: metadata.data.title || metadata.data.name || item.title || item.name || 'Unknown Title',
+                description: metadata.data.description || metadata.data.overview || metadata.data.plot || item.description || item.overview || item.plot || '',
+                poster: metadata.data.poster || metadata.data.posterShape || item.poster || item.posterShape || '',
+                background: metadata.data.background || metadata.data.logo || item.background || item.logo || '',
+                year: metadata.data.year || metadata.data.releaseInfo?.split('-')?.[0] || item.year || item.releaseInfo?.split('-')?.[0] || '2024',
+                rating: String(metadata.data.imdbRating || metadata.data.rating || item.imdbRating || item.rating || '7.0'),
+                genre: Array.isArray(metadata.data.genre) ? metadata.data.genre[0] : (metadata.data.genre || item.genre || 'Unknown'),
+                type: metadata.data.type || item.type || 'movie'
+              };
+            }
+          }
+        } catch (metaError) {
+          console.warn('Failed to get metadata for item:', item.id, metaError);
+        }
+
+        // Return normalized item without additional metadata
+        return {
+          ...item,
+          title: item.title || item.name || 'Unknown Title',
+          id: item.id || `unknown-${Math.random().toString(36).substring(7)}`,
+          type: item.type || type || 'movie',
+          description: item.description || item.overview || item.plot || '',
+          poster: item.poster || item.posterShape || '',
+          background: item.background || item.logo || '',
+          year: item.year || item.releaseInfo?.split('-')?.[0] || '2024',
+          rating: String(item.imdbRating || item.rating || '7.0'),
+          genre: Array.isArray(item.genre) ? item.genre[0] : (item.genre || 'Unknown')
+        };
+      }));
+
+      console.log('🔍 normalized search results:', normalizedResults.length, 'items');
+      return normalizedResults;
     } catch (error) {
       console.error('❌ search error:', error);
       // Return empty array as fallback to maintain compatibility
@@ -300,6 +359,82 @@ class ApiService {
         return !!this.apiKeys.mdblist;
       default:
         return false;
+    }
+  }
+
+  // Addon management methods
+  async getAddons() {
+    console.log('🔍 getAddons called');
+    try {
+      const result = await this.request('/addons');
+      console.log('🔍 getAddons result:', result);
+      // Return the addons array directly for backward compatibility
+      return result.success ? result : { addons: [] };
+    } catch (error) {
+      console.error('❌ getAddons error:', error);
+      // Return empty array as fallback to maintain compatibility
+      return { addons: [] };
+    }
+  }
+
+  async getAvailableAddons() {
+    console.log('🔍 getAvailableAddons called');
+    try {
+      const result = await this.request('/addons/available');
+      console.log('🔍 getAvailableAddons result:', result);
+      // Return the addons array directly for backward compatibility
+      return result.success ? result.addons : [];
+    } catch (error) {
+      console.error('❌ getAvailableAddons error:', error);
+      // Return empty array as fallback to maintain compatibility
+      return [];
+    }
+  }
+
+  async installAddon(url) {
+    console.log('🔍 installAddon called:', { url });
+    try {
+      const result = await this.request('/addons', {
+        method: 'POST',
+        body: JSON.stringify({ url })
+      });
+      console.log('🔍 installAddon result:', result);
+      // Return the addon directly for backward compatibility
+      return result.success ? { addon: result.addon } : null;
+    } catch (error) {
+      console.error('❌ installAddon error:', error);
+      throw error;
+    }
+  }
+
+  async syncAddons() {
+    console.log('🔍 syncAddons called');
+    try {
+      // For now, sync by refreshing addons from the backend
+      // This could be enhanced to sync content as well
+      const result = await this.request('/addons');
+      console.log('🔍 syncAddons result:', result);
+      // Return the addons array directly for backward compatibility
+      return result.success ? result.addons : [];
+    } catch (error) {
+      console.error('❌ syncAddons error:', error);
+      // Return empty array as fallback to maintain compatibility
+      return [];
+    }
+  }
+
+  async syncLibraryContent() {
+    console.log('🔍 syncLibraryContent called');
+    try {
+      // This is a placeholder - the actual sync functionality
+      // would depend on what content needs to be synced
+      // For now, just trigger a refresh of the library
+      const result = await this.getLibrary();
+      console.log('🔍 syncLibraryContent result:', result.length, 'items');
+      return result;
+    } catch (error) {
+      console.error('❌ syncLibraryContent error:', error);
+      throw error;
     }
   }
 }

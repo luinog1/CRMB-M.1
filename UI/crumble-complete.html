@@ -1,0 +1,2016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUMBLE - Streaming Platform</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'var(--background)',
+                        foreground: 'var(--foreground)',
+                        card: 'var(--card)',
+                        'card-foreground': 'var(--card-foreground)',
+                        popover: 'var(--popover)',
+                        'popover-foreground': 'var(--popover-foreground)',
+                        primary: 'var(--primary)',
+                        'primary-foreground': 'var(--primary-foreground)',
+                        secondary: 'var(--secondary)',
+                        'secondary-foreground': 'var(--secondary-foreground)',
+                        muted: 'var(--muted)',
+                        'muted-foreground': 'var(--muted-foreground)',
+                        accent: 'var(--accent)',
+                        'accent-foreground': 'var(--accent-foreground)',
+                        destructive: 'var(--destructive)',
+                        'destructive-foreground': 'var(--destructive-foreground)',
+                        border: 'var(--border)',
+                        input: 'var(--input)',
+                        ring: 'var(--ring)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --background: #000000;
+            --foreground: #ffffff;
+            --card: #0f0f0f;
+            --card-foreground: #ffffff;
+            --popover: #0f0f0f;
+            --popover-foreground: #ffffff;
+            --primary: #ffffff;
+            --primary-foreground: #000000;
+            --secondary: #1a1a1a;
+            --secondary-foreground: #ffffff;
+            --muted: #1a1a1a;
+            --muted-foreground: #666666;
+            --accent: #1f1f1f;
+            --accent-foreground: #ffffff;
+            --destructive: #dc2626;
+            --destructive-foreground: #ffffff;
+            --border: #1f1f1f;
+            --input: #1a1a1a;
+            --ring: #333333;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: var(--primary);
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background-color: var(--border);
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .backdrop-blur-sm {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useContext, createContext, useCallback, useMemo } = React;
+
+        // Icons Component (Lucide React replacements)
+        const Icons = {
+            Home: () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9,22 9,12 15,12 15,22"/>
+                </svg>
+            ),
+            BookOpen: () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+            ),
+            Settings: () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            ),
+            Search: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+            ),
+            X: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18"/>
+                    <path d="m6 6 12 12"/>
+                </svg>
+            ),
+            Play: ({ size = 20, fill = "none" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="5,3 19,12 5,21"/>
+                </svg>
+            ),
+            Plus: () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14"/>
+                    <path d="M12 5v14"/>
+                </svg>
+            ),
+            Info: () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                </svg>
+            ),
+            Star: ({ size = 16, fill = "none" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                </svg>
+            ),
+            RefreshCw: ({ className = "" }) => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                    <path d="M21 3v5h-5"/>
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                    <path d="M3 21v-5h5"/>
+                </svg>
+            ),
+            Trash2: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c0-1-1-2-1-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c0 1 1 2 1 2v2"/>
+                    <line x1="10" x2="10" y1="11" y2="17"/>
+                    <line x1="14" x2="14" y1="11" y2="17"/>
+                </svg>
+            ),
+            AlertCircle: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" x2="12" y1="8" y2="12"/>
+                    <line x1="12" x2="12.01" y1="16" y2="16"/>
+                </svg>
+            ),
+            CheckCircle: () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22,4 12,14.01 9,11.01"/>
+                </svg>
+            ),
+            Globe: ({ size = 48 }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" x2="22" y1="12" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+            )
+        };
+
+        // Stremio Addon Service
+        class StremioAddonService {
+            constructor() {
+                this.addons = this.loadAddons();
+                this.content = this.loadContent();
+                this.initializeDefaultAddons();
+            }
+
+            loadAddons() {
+                try {
+                    const saved = localStorage.getItem('crumble-addons');
+                    return saved ? JSON.parse(saved) : [];
+                } catch {
+                    return [];
+                }
+            }
+
+            loadContent() {
+                try {
+                    const saved = localStorage.getItem('crumble-content');
+                    return saved ? JSON.parse(saved) : [];
+                } catch {
+                    return [];
+                }
+            }
+
+            saveAddons() {
+                localStorage.setItem('crumble-addons', JSON.stringify(this.addons));
+            }
+
+            saveContent() {
+                localStorage.setItem('crumble-content', JSON.stringify(this.content));
+            }
+
+            async initializeDefaultAddons() {
+                // Default addons removed - system will start empty
+                // Users can add addons through the settings page
+                console.log('🚀 Starting with empty addon list - ready for user configuration');
+            }
+
+            addSampleContent() {
+                const sampleContent = [
+                    {
+                        id: 'sample-1',
+                        title: 'The Dark Knight',
+                        year: '2008',
+                        rating: '9.0',
+                        genre: 'Action',
+                        description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.',
+                        poster: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=450&fit=crop',
+                        type: 'movie',
+                        addonId: 'sample',
+                        imdbId: 'tt0468569'
+                    },
+                    {
+                        id: 'sample-2',
+                        title: 'Breaking Bad',
+                        year: '2008',
+                        rating: '9.5',
+                        genre: 'Drama',
+                        description: 'A high school chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine.',
+                        poster: 'https://images.unsplash.com/photo-1489599735916-c0b96b4e136c?w=300&h=450&fit=crop',
+                        type: 'tv',
+                        addonId: 'sample',
+                        imdbId: 'tt0903747'
+                    },
+                    {
+                        id: 'sample-3',
+                        title: 'Inception',
+                        year: '2010',
+                        rating: '8.8',
+                        genre: 'Science Fiction',
+                        description: 'A thief who steals corporate secrets through dream-sharing technology is given the inverse task of planting an idea.',
+                        poster: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=300&h=450&fit=crop',
+                        type: 'movie',
+                        addonId: 'sample',
+                        imdbId: 'tt1375666'
+                    },
+                    {
+                        id: 'sample-4',
+                        title: 'Stranger Things',
+                        year: '2016',
+                        rating: '8.7',
+                        genre: 'Horror',
+                        description: 'When a young boy vanishes, a small town uncovers a mystery involving secret experiments and supernatural forces.',
+                        poster: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=450&fit=crop',
+                        type: 'tv',
+                        addonId: 'sample',
+                        imdbId: 'tt4574334'
+                    }
+                ];
+
+                this.content = [...this.content, ...sampleContent];
+                this.saveContent();
+            }
+
+            async getAddons() {
+                return [...this.addons];
+            }
+
+            async addAddon(addonData) {
+                const addon = {
+                    ...addonData,
+                    id: addonData.id || `addon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    status: 'inactive',
+                    contentCount: 0
+                };
+
+                try {
+                    await this.testAddon(addon);
+                    addon.status = 'active';
+                } catch (error) {
+                    addon.status = 'error';
+                    addon.error = error.message;
+                }
+
+                this.addons.push(addon);
+                this.saveAddons();
+                return addon;
+            }
+
+            async updateAddon(id, updates) {
+                const index = this.addons.findIndex(addon => addon.id === id);
+                if (index === -1) throw new Error('Addon not found');
+
+                this.addons[index] = { ...this.addons[index], ...updates };
+                this.saveAddons();
+                return this.addons[index];
+            }
+
+            async deleteAddon(id) {
+                this.addons = this.addons.filter(addon => addon.id !== id);
+                this.content = this.content.filter(content => content.addonId !== id);
+                this.saveAddons();
+                this.saveContent();
+            }
+
+            async testAddon(addon) {
+                try {
+                    const manifestUrl = `${addon.url}/manifest.json`;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
+                    const response = await fetch(manifestUrl, {
+                        signal: controller.signal,
+                        mode: 'cors'
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const manifest = await response.json();
+                    
+                    if (!manifest.name || !manifest.resources || !manifest.types) {
+                        throw new Error('Invalid addon manifest');
+                    }
+
+                    return true;
+                } catch (error) {
+                    console.error(`Addon test failed for ${addon.name}:`, error);
+                    throw error;
+                }
+            }
+
+            async syncAddon(addon) {
+                if (!addon.enabled) {
+                    throw new Error('Addon is disabled');
+                }
+
+                try {
+                    const content = await this.fetchContentFromAddon(addon);
+                    
+                    // Remove old content from this addon
+                    this.content = this.content.filter(item => item.addonId !== addon.id);
+                    
+                    // Add new content
+                    this.content.push(...content);
+                    
+                    // Update addon
+                    const updatedAddon = {
+                        ...addon,
+                        contentCount: content.length,
+                        lastSync: new Date().toISOString(),
+                        status: 'active',
+                        error: undefined
+                    };
+                    
+                    await this.updateAddon(addon.id, updatedAddon);
+                    this.saveContent();
+                    
+                    return content.length;
+                } catch (error) {
+                    await this.updateAddon(addon.id, {
+                        status: 'error',
+                        error: error.message
+                    });
+                    throw error;
+                }
+            }
+
+            async fetchContentFromAddon(addon) {
+                const content = [];
+
+                try {
+                    // Get manifest first
+                    const manifestResponse = await fetch(`${addon.url}/manifest.json`, {
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    
+                    if (!manifestResponse.ok) {
+                        throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`);
+                    }
+                    
+                    const manifest = await manifestResponse.json();
+                    
+                    // Find catalogs to fetch from
+                    const catalogs = manifest.catalogs || [];
+                    const movieCatalogs = catalogs.filter(cat => cat.type === 'movie');
+                    const tvCatalogs = catalogs.filter(cat => cat.type === 'series');
+                    
+                    // Fetch from movie catalogs
+                    if (addon.type === 'movies' || addon.type === 'both') {
+                        for (const catalog of movieCatalogs.slice(0, 2)) {
+                            try {
+                                const catalogContent = await this.fetchCatalogContent(addon, catalog.type, catalog.id);
+                                content.push(...catalogContent);
+                            } catch (error) {
+                                console.warn(`Failed to fetch from catalog ${catalog.id}:`, error);
+                            }
+                        }
+                    }
+                    
+                    // Fetch from TV catalogs
+                    if (addon.type === 'tv' || addon.type === 'both') {
+                        for (const catalog of tvCatalogs.slice(0, 2)) {
+                            try {
+                                const catalogContent = await this.fetchCatalogContent(addon, catalog.type, catalog.id);
+                                content.push(...catalogContent);
+                            } catch (error) {
+                                console.warn(`Failed to fetch from catalog ${catalog.id}:`, error);
+                            }
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error(`Error fetching content from ${addon.name}:`, error);
+                    throw error;
+                }
+
+                return content.slice(0, 50);
+            }
+
+            async fetchCatalogContent(addon, type, catalogId) {
+                const catalogUrl = `${addon.url}/catalog/${type}/${catalogId}.json`;
+                
+                const response = await fetch(catalogUrl, {
+                    signal: AbortSignal.timeout(15000)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const metas = data.metas || [];
+                
+                return metas.slice(0, 20).map(meta => this.normalizeContent(meta, addon.id, type));
+            }
+
+            normalizeContent(meta, addonId, type) {
+                return {
+                    id: meta.id || `${addonId}-${Date.now()}-${Math.random()}`,
+                    title: meta.name || meta.title || 'Unknown Title',
+                    year: meta.year || meta.releaseInfo?.split('-')?.[0] || '2024',
+                    rating: String(meta.imdbRating || meta.rating || '7.0'),
+                    genre: Array.isArray(meta.genre) ? meta.genre[0] : (meta.genre || 'Unknown'),
+                    description: meta.description || meta.overview || meta.plot || '',
+                    poster: meta.poster || meta.posterShape || '',
+                    background: meta.background || meta.logo || '',
+                    type: type === 'series' ? 'tv' : 'movie',
+                    addonId,
+                    imdbId: meta.imdb_id || meta.imdbId,
+                    runtime: meta.runtime,
+                    cast: meta.cast,
+                    director: meta.director,
+                    awards: meta.awards,
+                    country: meta.country,
+                    language: meta.language
+                };
+            }
+
+            async syncAllAddons() {
+                const enabledAddons = this.addons.filter(addon => addon.enabled);
+                let success = 0;
+                let failed = 0;
+
+                for (const addon of enabledAddons) {
+                    try {
+                        await this.syncAddon(addon);
+                        success++;
+                    } catch (error) {
+                        console.error(`Failed to sync ${addon.name}:`, error);
+                        failed++;
+                    }
+                }
+
+                return { success, failed, total: enabledAddons.length };
+            }
+
+            async getContent(options = {}) {
+                let filteredContent = [...this.content];
+
+                if (options.search) {
+                    const searchLower = options.search.toLowerCase();
+                    filteredContent = filteredContent.filter(item =>
+                        item.title.toLowerCase().includes(searchLower) ||
+                        item.genre.toLowerCase().includes(searchLower) ||
+                        item.description.toLowerCase().includes(searchLower)
+                    );
+                }
+
+                if (options.type && options.type !== 'all') {
+                    filteredContent = filteredContent.filter(item => item.type === options.type);
+                }
+
+                if (options.genre) {
+                    filteredContent = filteredContent.filter(item =>
+                        item.genre.toLowerCase().includes(options.genre.toLowerCase())
+                    );
+                }
+
+                filteredContent.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+
+                if (options.limit) {
+                    filteredContent = filteredContent.slice(0, options.limit);
+                }
+
+                return filteredContent;
+            }
+
+            getContentStats() {
+                const total = this.content.length;
+                const movies = this.content.filter(item => item.type === 'movie').length;
+                const tv = this.content.filter(item => item.type === 'tv').length;
+                const addons = this.addons.length;
+                const enabledAddons = this.addons.filter(addon => addon.enabled).length;
+
+                return { total, movies, tv, addons, enabledAddons };
+            }
+
+            getPopularAddons() {
+                return [
+                    {
+                        name: 'Cinemeta',
+                        description: 'Official Stremio addon with movie and TV metadata',
+                        url: 'https://v3-cinemeta.strem.io',
+                        enabled: false,
+                        type: 'both'
+                    },
+                    {
+                        name: 'OpenSubtitles',
+                        description: 'Subtitle provider for movies and TV shows',
+                        url: 'https://opensubtitles-v3.strem.io',
+                        enabled: false,
+                        type: 'both'
+                    },
+                    {
+                        name: 'YouTube',
+                        description: 'YouTube videos and channels',
+                        url: 'https://youtube.strem.io',
+                        enabled: false,
+                        type: 'both'
+                    }
+                ];
+            }
+        }
+
+        const addonService = new StremioAddonService();
+
+        // App Context
+        const AppContext = createContext();
+
+        const AppProvider = ({ children }) => {
+            const [activeTab, setActiveTab] = useState('home');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+            const refresh = () => setRefreshTrigger(prev => prev + 1);
+
+            useEffect(() => {
+                const handleHashChange = () => {
+                    const hash = window.location.hash.slice(2);
+                    if (hash === 'library' || hash === 'settings') {
+                        setActiveTab(hash);
+                    } else {
+                        setActiveTab('home');
+                    }
+                };
+
+                handleHashChange();
+                window.addEventListener('hashchange', handleHashChange);
+                
+                return () => {
+                    window.removeEventListener('hashchange', handleHashChange);
+                };
+            }, []);
+
+            const handleSetActiveTab = (tab) => {
+                setActiveTab(tab);
+                if (tab === 'home') {
+                    window.location.hash = '#/';
+                } else {
+                    window.location.hash = `#/${tab}`;
+                }
+                setSearchQuery('');
+            };
+
+            useEffect(() => {
+                if (error) {
+                    const timeout = setTimeout(() => setError(null), 5000);
+                    return () => clearTimeout(timeout);
+                }
+            }, [error]);
+
+            const value = {
+                activeTab,
+                setActiveTab: handleSetActiveTab,
+                searchQuery,
+                setSearchQuery,
+                isLoading,
+                setIsLoading,
+                error,
+                setError,
+                refreshTrigger,
+                refresh
+            };
+
+            return React.createElement(AppContext.Provider, { value }, children);
+        };
+
+        const useApp = () => {
+            const context = useContext(AppContext);
+            if (!context) {
+                throw new Error('useApp must be used within an AppProvider');
+            }
+            return context;
+        };
+
+        // Components
+        const Sidebar = () => {
+            const { activeTab, setActiveTab, sidebarExpanded, setSidebarExpanded } = useApp();
+            const [isHovered, setIsHovered] = useState(false);
+
+            const navItems = [
+                { id: 'home', label: 'Home', icon: Icons.Home },
+                { id: 'library', label: 'Library', icon: Icons.BookOpen },
+                { id: 'settings', label: 'Settings', icon: Icons.Settings },
+            ];
+
+            const isExpanded = sidebarExpanded || isHovered;
+
+            return React.createElement('div', {
+                className: `fixed left-6 top-1/2 -translate-y-1/2 z-50 transition-all duration-300 ease-in-out ${
+                    isExpanded ? 'w-56' : 'w-16'
+                }`,
+                onMouseEnter: () => setIsHovered(true),
+                onMouseLeave: () => setIsHovered(false)
+            }, React.createElement('div', {
+                className: `backdrop-blur-xl border border-border/30 rounded-2xl shadow-2xl p-4 transition-all duration-300 ${
+                    isExpanded
+                        ? 'bg-card/95 shadow-black/20'
+                        : 'bg-card/80 shadow-black/10'
+                }`
+            }, React.createElement('div', {
+                className: "flex flex-col gap-3"
+            }, [
+                // Header with expand toggle
+                React.createElement('div', {
+                    key: 'header',
+                    className: `flex items-center justify-between mb-3 pb-3 border-b border-border/30 transition-all duration-300 ${
+                        isExpanded ? 'opacity-100' : 'opacity-0'
+                    }`
+                }, [
+                    React.createElement('h3', {
+                        key: 'title',
+                        className: "text-sm font-semibold text-foreground/90"
+                    }, 'Navigation'),
+                    React.createElement('button', {
+                        key: 'toggle',
+                        onClick: () => setSidebarExpanded(!sidebarExpanded),
+                        className: "p-1.5 rounded-lg hover:bg-accent/80 transition-all duration-200 group",
+                        title: sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'
+                    }, React.createElement('svg', {
+                        width: '16',
+                        height: '16',
+                        viewBox: '0 0 24 24',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        strokeWidth: '2',
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round',
+                        className: `transition-all duration-200 text-muted-foreground group-hover:text-foreground ${
+                            sidebarExpanded ? 'rotate-180' : ''
+                        }`
+                    }, [
+                        React.createElement('path', { key: 'path1', d: 'M15 18l-6-6 6-6' }),
+                    ]))
+                ]),
+
+                // Navigation items
+                ...navItems.map(item => {
+                    const isActive = activeTab === item.id;
+
+                    return React.createElement('button', {
+                        key: item.id,
+                        onClick: () => setActiveTab(item.id),
+                        className: `group relative flex items-center gap-4 p-3 rounded-xl transition-all duration-200 ${
+                            isActive
+                                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                                : 'hover:bg-accent/70 text-muted-foreground hover:text-foreground'
+                        }`,
+                        title: item.label
+                    }, [
+                        React.createElement('div', {
+                            key: 'icon-container',
+                            className: `flex-shrink-0 p-1 rounded-lg transition-all duration-200 ${
+                                isActive
+                                    ? 'bg-primary-foreground/20'
+                                    : 'group-hover:bg-accent'
+                            }`
+                        }, React.createElement(item.icon, {
+                            key: 'icon',
+                            className: `transition-all duration-200 ${
+                                isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                            }`
+                        })),
+                        React.createElement('span', {
+                            key: 'label',
+                            className: `text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                                isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                            } ${
+                                isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
+                            }`
+                        }, item.label),
+                        // Active indicator
+                        isActive && React.createElement('div', {
+                            key: 'active-indicator',
+                            className: "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-foreground rounded-r-full"
+                        })
+                    ]);
+                }),
+
+                // Search button for expanded state
+                React.createElement('div', {
+                    key: 'search-section',
+                    className: `mt-4 pt-4 border-t border-border/30 transition-all duration-300 ${
+                        isExpanded ? 'opacity-100' : 'opacity-0'
+                    }`
+                }, React.createElement('button', {
+                    onClick: () => setActiveTab('home'),
+                    className: "flex items-center gap-4 p-3 rounded-xl transition-all duration-200 hover:bg-accent/70 group w-full text-muted-foreground hover:text-foreground",
+                    title: 'Search'
+                }, [
+                    React.createElement('div', {
+                        key: 'search-icon-container',
+                        className: "flex-shrink-0 p-1 rounded-lg group-hover:bg-accent"
+                    }, React.createElement(Icons.Search, {
+                        key: 'search-icon',
+                        className: "text-muted-foreground group-hover:text-foreground transition-colors duration-200"
+                    })),
+                    React.createElement('span', {
+                        key: 'search-label',
+                        className: "text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-200"
+                    }, 'Search')
+                ]))
+            ])));
+        };
+
+        const Header = () => {
+            const { searchQuery, setSearchQuery, activeTab } = useApp();
+            const [localSearch, setLocalSearch] = useState(searchQuery);
+
+            useEffect(() => {
+                setLocalSearch(searchQuery);
+            }, [searchQuery]);
+
+            useEffect(() => {
+                const debounced = setTimeout(() => {
+                    setSearchQuery(localSearch);
+                }, 300);
+
+                return () => clearTimeout(debounced);
+            }, [localSearch, setSearchQuery]);
+
+            const handleClearSearch = () => {
+                setLocalSearch('');
+                setSearchQuery('');
+            };
+
+            return React.createElement('header', {
+                className: "sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border"
+            }, React.createElement('div', {
+                className: "flex items-center justify-between p-6"
+            }, [
+                React.createElement('div', {
+                    key: 'title',
+                    className: "flex items-center gap-4"
+                }, [
+                    React.createElement('h1', {
+                        key: 'h1',
+                        className: "text-2xl font-bold text-foreground"
+                    }, 'CRUMBLE'),
+                    React.createElement('div', {
+                        key: 'tab',
+                        className: "text-sm text-muted-foreground capitalize"
+                    }, activeTab)
+                ]),
+                activeTab === 'home' && React.createElement('div', {
+                    key: 'search',
+                    className: "relative"
+                }, [
+                    React.createElement(Icons.Search, {
+                        key: 'search-icon',
+                        className: "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    }),
+                    React.createElement('input', {
+                        key: 'search-input',
+                        type: 'text',
+                        placeholder: 'Search movies, shows, actors...',
+                        value: localSearch,
+                        onChange: (e) => setLocalSearch(e.target.value),
+                        className: "pl-10 pr-10 py-2 bg-accent border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-64 transition-all duration-200 placeholder:text-muted-foreground text-foreground"
+                    }),
+                    localSearch && React.createElement('button', {
+                        key: 'clear-btn',
+                        onClick: handleClearSearch,
+                        className: "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    }, React.createElement(Icons.X))
+                ])
+            ]));
+        };
+
+        const ContentCard = ({ item }) => {
+            const handlePlay = useCallback(async () => {
+                console.log('Playing:', item.title);
+                // Implement play functionality
+            }, [item]);
+
+            return React.createElement('div', {
+                className: "min-w-[160px] cursor-pointer transition-transform duration-200 hover:scale-105 relative group"
+            }, [
+                React.createElement('div', {
+                    key: 'card-content',
+                    className: "w-[160px] h-[240px] bg-card border border-border rounded-lg overflow-hidden relative flex items-center justify-center"
+                }, [
+                    React.createElement('div', {
+                        key: 'rating-badge',
+                        className: "absolute top-2 right-2 flex items-center gap-1 bg-background/90 px-2 py-1 rounded text-xs text-yellow-400 font-bold border border-yellow-400/30"
+                    }, [
+                        React.createElement(Icons.Star, { key: 'star', size: 10, fill: "currentColor" }),
+                        React.createElement('span', { key: 'rating' }, item.rating)
+                    ]),
+                    React.createElement('div', {
+                        key: 'addon-badge',
+                        className: "absolute top-2 left-2 bg-background/90 px-2 py-1 rounded text-xs text-muted-foreground border border-border"
+                    }, item.addonId),
+                    item.poster ? React.createElement('img', {
+                        key: 'poster',
+                        src: item.poster,
+                        alt: item.title,
+                        className: "w-full h-full object-cover",
+                        onError: (e) => {
+                            e.currentTarget.style.display = 'none';
+                        }
+                    }) : React.createElement('div', {
+                        key: 'no-poster',
+                        className: "flex items-center justify-center w-full h-full"
+                    }, React.createElement(Icons.Play, { size: 32, className: "text-muted-foreground group-hover:text-foreground transition-colors duration-200", fill: "currentColor" })),
+                    React.createElement('div', {
+                        key: 'overlay',
+                        className: "absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+                    }, React.createElement('button', {
+                        onClick: handlePlay,
+                        className: "bg-primary text-primary-foreground p-3 rounded-full hover:bg-primary/90 transition-all duration-200"
+                    }, React.createElement(Icons.Play, { size: 24, fill: "currentColor" }))),
+                    React.createElement('div', {
+                        key: 'type-badge',
+                        className: "absolute bottom-2 left-2 bg-primary/90 text-primary-foreground px-2 py-1 rounded text-xs font-bold"
+                    }, (item.type || 'unknown').toUpperCase())
+                ]),
+                React.createElement('div', {
+                    key: 'card-info',
+                    className: "py-3"
+                }, [
+                    React.createElement('div', {
+                        key: 'title',
+                        className: "text-sm font-semibold text-foreground line-clamp-2",
+                        title: item.title
+                    }, item.title),
+                    React.createElement('div', {
+                        key: 'meta',
+                        className: "text-xs text-muted-foreground flex items-center justify-between"
+                    }, [
+                        React.createElement('span', { key: 'year' }, item.year),
+                        React.createElement('span', { key: 'genre', className: "text-primary" }, item.genre)
+                    ]),
+                    item.description && React.createElement('div', {
+                        key: 'desc',
+                        className: "text-xs text-muted-foreground mt-1 line-clamp-2",
+                        title: item.description
+                    }, item.description)
+                ])
+            ]);
+        };
+
+        const HomePage = () => {
+            const { searchQuery } = useApp();
+            const [content, setContent] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [syncing, setSyncing] = useState(false);
+            const [error, setError] = useState(null);
+            const [featuredItem, setFeaturedItem] = useState(null);
+
+            const fetchContent = useCallback(async () => {
+                try {
+                    setError(null);
+                    setLoading(true);
+                    
+                    const fetchedContent = await addonService.getContent({ limit: 100 });
+                    setContent(fetchedContent);
+                    
+                    if (fetchedContent.length > 0) {
+                        const topRated = fetchedContent
+                            .filter(item => parseFloat(item.rating) >= 7.0)
+                            .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+                        
+                        const featured = topRated.length > 0 ? topRated[0] : fetchedContent[0];
+                        setFeaturedItem(featured);
+                    }
+                } catch (error) {
+                    console.error('Error fetching content:', error);
+                    setError(error.message);
+                    setContent([]);
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+
+            const searchContent = useCallback(async (query) => {
+                if (!query.trim()) {
+                    fetchContent();
+                    return;
+                }
+                
+                try {
+                    setError(null);
+                    const searchResults = await addonService.getContent({ 
+                        search: query, 
+                        limit: 50 
+                    });
+                    setContent(searchResults);
+                    setFeaturedItem(searchResults[0] || null);
+                } catch (error) {
+                    console.error('Error searching content:', error);
+                    setError(error.message);
+                }
+            }, [fetchContent]);
+
+            const syncAddons = useCallback(async () => {
+                try {
+                    setSyncing(true);
+                    setError(null);
+                    await addonService.syncAllAddons();
+                    await fetchContent();
+                } catch (error) {
+                    console.error('Error syncing addons:', error);
+                    setError(error.message);
+                } finally {
+                    setSyncing(false);
+                }
+            }, [fetchContent]);
+
+            const { movies, tvShows, recentContent, popularContent, trendingContent } = useMemo(() => {
+                const movies = content.filter(item => item.type === 'movie');
+                const tvShows = content.filter(item => item.type === 'tv');
+                
+                const recentContent = [...content]
+                    .sort((a, b) => new Date(b.year).getTime() - new Date(a.year).getTime())
+                    .slice(0, 12);
+                
+                const popularContent = [...content]
+                    .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
+                    .slice(0, 12);
+                
+                const trendingContent = [...content]
+                    .filter(item => parseFloat(item.rating) >= 7.5)
+                    .slice(0, 12);
+
+                return {
+                    movies: movies.slice(0, 15),
+                    tvShows: tvShows.slice(0, 15),
+                    recentContent,
+                    popularContent,
+                    trendingContent
+                };
+            }, [content]);
+
+            useEffect(() => {
+                fetchContent();
+            }, [fetchContent]);
+
+            useEffect(() => {
+                const delayedSearch = setTimeout(() => {
+                    searchContent(searchQuery);
+                }, 300);
+
+                return () => clearTimeout(delayedSearch);
+            }, [searchQuery, searchContent]);
+
+            if (loading && content.length === 0) {
+                return React.createElement('div', {
+                    className: "flex items-center justify-center h-[60vh]"
+                }, React.createElement('div', {
+                    className: "text-center"
+                }, [
+                    React.createElement('div', {
+                        key: 'spinner',
+                        className: "animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"
+                    }),
+                    React.createElement('p', {
+                        key: 'text',
+                        className: "text-muted-foreground"
+                    }, 'Loading content from addons...')
+                ]));
+            }
+
+            if (error && content.length === 0) {
+                return React.createElement('div', {
+                    className: "px-10 py-20 text-center"
+                }, React.createElement('div', {
+                    className: "bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto"
+                }, [
+                    React.createElement('h3', {
+                        key: 'title',
+                        className: "text-lg font-semibold text-destructive mb-2"
+                    }, 'Error Loading Content'),
+                    React.createElement('p', {
+                        key: 'message',
+                        className: "text-destructive/80 mb-4"
+                    }, error),
+                    React.createElement('div', {
+                        key: 'buttons',
+                        className: "flex gap-3 justify-center"
+                    }, [
+                        React.createElement('button', {
+                            key: 'retry',
+                            onClick: fetchContent,
+                            className: "bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                        }, 'Retry'),
+                        React.createElement('button', {
+                            key: 'settings',
+                            onClick: () => window.location.href = '#/settings',
+                            className: "bg-accent text-accent-foreground px-4 py-2 rounded-lg font-medium border border-border hover:bg-accent/80 transition-colors"
+                        }, 'Configure Addons')
+                    ])
+                ]));
+            }
+
+            return React.createElement('div', {}, [
+                // Hero Section
+                React.createElement('div', {
+                    key: 'hero',
+                    className: "relative h-[80vh] bg-gradient-to-br from-card to-accent flex items-end overflow-hidden"
+                }, [
+                    featuredItem?.poster && React.createElement('div', {
+                        key: 'hero-bg',
+                        className: "absolute inset-0 bg-cover bg-center",
+                        style: { backgroundImage: `url(${featuredItem.poster})` }
+                    }),
+                    !featuredItem?.poster && React.createElement('div', {
+                        key: 'hero-pattern',
+                        className: "absolute inset-0 opacity-10"
+                    }, [
+                        React.createElement('div', {
+                            key: 'circle1',
+                            className: "absolute top-[150px] left-[200px] w-[200px] h-[200px] bg-primary rounded-full blur-3xl"
+                        }),
+                        React.createElement('div', {
+                            key: 'circle2',
+                            className: "absolute bottom-[200px] right-[200px] w-[300px] h-[300px] bg-muted-foreground rounded-full blur-3xl opacity-50"
+                        })
+                    ]),
+                    React.createElement('div', {
+                        key: 'hero-overlay',
+                        className: "absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent"
+                    }),
+                    React.createElement('div', {
+                        key: 'hero-content',
+                        className: "relative z-10 px-10 pb-20 max-w-3xl"
+                    }, [
+                        featuredItem ? React.createElement('div', {
+                            key: 'featured-content'
+                        }, [
+                            React.createElement('div', {
+                                key: 'meta',
+                                className: "flex items-center gap-3 mb-4 text-sm text-muted-foreground"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'rating',
+                                    className: "bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-bold"
+                                }, featuredItem.rating),
+                                React.createElement('span', { key: 'year' }, featuredItem.year),
+                                React.createElement('span', { key: 'type', className: "capitalize" }, featuredItem.type),
+                                React.createElement('span', { key: 'genre' }, featuredItem.genre),
+                                React.createElement('span', { key: 'addon', className: "text-primary" }, `From: ${featuredItem.addonId}`)
+                            ]),
+                            React.createElement('h1', {
+                                key: 'title',
+                                className: "text-6xl font-bold leading-tight mb-4 text-foreground"
+                            }, featuredItem.title),
+                            React.createElement('p', {
+                                key: 'desc',
+                                className: "text-muted-foreground leading-relaxed mb-8 text-lg max-w-2xl"
+                            }, featuredItem.description || `Discover ${featuredItem.title} and more amazing content from your configured addons.`)
+                        ]) : React.createElement('div', {
+                            key: 'default-content'
+                        }, [
+                            React.createElement('div', {
+                                key: 'default-meta',
+                                className: "flex items-center gap-3 mb-4 text-sm text-muted-foreground"
+                            }, [
+                                React.createElement('div', {
+                                    key: 'rating',
+                                    className: "bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-bold"
+                                }, '8.5'),
+                                React.createElement('span', { key: 'year' }, '2024'),
+                                React.createElement('span', { key: 'featured' }, 'Featured')
+                            ]),
+                            React.createElement('h1', {
+                                key: 'title',
+                                className: "text-6xl font-bold leading-tight mb-4 text-foreground"
+                            }, 'Featured Content'),
+                            React.createElement('p', {
+                                key: 'desc',
+                                className: "text-muted-foreground leading-relaxed mb-8 text-lg max-w-lg"
+                            }, 'Discover amazing movies and shows from your configured addons.')
+                        ]),
+                        React.createElement('div', {
+                            key: 'buttons',
+                            className: "flex gap-4"
+                        }, [
+                            React.createElement('button', {
+                                key: 'play',
+                                className: "flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-200"
+                            }, [
+                                React.createElement(Icons.Play, { key: 'icon', size: 20, fill: "currentColor" }),
+                                'Play'
+                            ]),
+                            React.createElement('button', {
+                                key: 'list',
+                                className: "flex items-center gap-2 bg-accent text-accent-foreground px-8 py-3 rounded-lg font-semibold border border-border hover:bg-accent/80 transition-all duration-200"
+                            }, [
+                                React.createElement(Icons.Plus, { key: 'icon', size: 20 }),
+                                'My List'
+                            ]),
+                            React.createElement('button', {
+                                key: 'info',
+                                className: "flex items-center gap-2 bg-accent text-accent-foreground px-8 py-3 rounded-lg font-semibold border border-border hover:bg-accent/80 transition-all duration-200"
+                            }, [
+                                React.createElement(Icons.Info, { key: 'icon', size: 20 }),
+                                'More Info'
+                            ])
+                        ])
+                    ])
+                ]),
+
+                // Sync Button
+                React.createElement('div', {
+                    key: 'sync-bar',
+                    className: "px-10 py-4 flex justify-end"
+                }, React.createElement('button', {
+                    onClick: syncAddons,
+                    disabled: syncing,
+                    className: "flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-all duration-200 disabled:opacity-50"
+                }, [
+                    React.createElement(Icons.RefreshCw, { 
+                        key: 'icon', 
+                        className: syncing ? 'animate-spin' : ''
+                    }),
+                    syncing ? 'Syncing Addons...' : 'Sync Addons'
+                ])),
+
+                // Search Results
+                searchQuery && React.createElement('div', {
+                    key: 'search-results',
+                    className: "px-10 py-12"
+                }, [
+                    React.createElement('div', {
+                        key: 'header',
+                        className: "flex justify-between items-center mb-6"
+                    }, React.createElement('h2', {
+                        className: "text-xl font-semibold text-foreground"
+                    }, `Search Results for "${searchQuery}" (${content.length})`)),
+                    React.createElement('div', {
+                        key: 'content',
+                        className: "flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-border"
+                    }, content.map(item => React.createElement(ContentCard, {
+                        key: `${item.addonId}-${item.id}`,
+                        item
+                    })))
+                ]),
+
+                // Content Sections
+                !searchQuery && React.createElement('div', {
+                    key: 'content-sections'
+                }, [
+                    trendingContent.length > 0 && React.createElement('div', {
+                        key: 'trending',
+                        className: "px-10 py-12"
+                    }, [
+                        React.createElement('div', {
+                            key: 'header',
+                            className: "flex justify-between items-center mb-6"
+                        }, React.createElement('h2', {
+                            className: "text-xl font-semibold text-foreground"
+                        }, `Trending Now (${trendingContent.length})`)),
+                        React.createElement('div', {
+                            key: 'content',
+                            className: "flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-border"
+                        }, trendingContent.map(item => React.createElement(ContentCard, {
+                            key: `trending-${item.addonId}-${item.id}`,
+                            item
+                        })))
+                    ]),
+
+                    popularContent.length > 0 && React.createElement('div', {
+                        key: 'popular',
+                        className: "px-10 py-12"
+                    }, [
+                        React.createElement('div', {
+                            key: 'header',
+                            className: "flex justify-between items-center mb-6"
+                        }, React.createElement('h2', {
+                            className: "text-xl font-semibold text-foreground"
+                        }, `Top Rated (${popularContent.length})`)),
+                        React.createElement('div', {
+                            key: 'content',
+                            className: "flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-border"
+                        }, popularContent.map(item => React.createElement(ContentCard, {
+                            key: `popular-${item.addonId}-${item.id}`,
+                            item
+                        })))
+                    ]),
+
+                    recentContent.length > 0 && React.createElement('div', {
+                        key: 'recent',
+                        className: "px-10 py-12"
+                    }, [
+                        React.createElement('div', {
+                            key: 'header',
+                            className: "flex justify-between items-center mb-6"
+                        }, React.createElement('h2', {
+                            className: "text-xl font-semibold text-foreground"
+                        }, `Latest Releases (${recentContent.length})`)),
+                        React.createElement('div', {
+                            key: 'content',
+                            className: "flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-border"
+                        }, recentContent.map(item => React.createElement(ContentCard, {
+                            key: `recent-${item.addonId}-${item.id}`,
+                            item
+                        })))
+                    ]),
+
+                    movies.length > 0 && React.createElement('div', {
+                        key: 'movies',
+                        className: "px-10 py-12"
+                    }, [
+                        React.createElement('div', {
+                            key: 'header',
+                            className: "flex justify-between items-center mb-6"
+                        }, React.createElement('h2', {
+                            className: "text-xl font-semibold text-foreground"
+                        }, `Movies (${movies.length})`)),
+                        React.createElement('div', {
+                            key: 'content',
+                            className: "flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-border"
+                        }, movies.map(item => React.createElement(ContentCard, {
+                            key: `movie-${item.addonId}-${item.id}`,
+                            item
+                        })))
+                    ]),
+
+                    tvShows.length > 0 && React.createElement('div', {
+                        key: 'tv',
+                        className: "px-10 py-12"
+                    }, [
+                        React.createElement('div', {
+                            key: 'header',
+                            className: "flex justify-between items-center mb-6"
+                        }, React.createElement('h2', {
+                            className: "text-xl font-semibold text-foreground"
+                        }, `TV Shows (${tvShows.length})`)),
+                        React.createElement('div', {
+                            key: 'content',
+                            className: "flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary scrollbar-track-border"
+                        }, tvShows.map(item => React.createElement(ContentCard, {
+                            key: `tv-${item.addonId}-${item.id}`,
+                            item
+                        })))
+                    ])
+                ]),
+
+                // Empty State
+                content.length === 0 && !loading && !searchQuery && React.createElement('div', {
+                    key: 'empty-state',
+                    className: "px-10 py-20 text-center"
+                }, [
+                    React.createElement(Icons.Play, {
+                        key: 'icon',
+                        size: 64,
+                        className: "mx-auto text-muted-foreground mb-6"
+                    }),
+                    React.createElement('h3', {
+                        key: 'title',
+                        className: "text-xl font-semibold text-foreground mb-2"
+                    }, 'No Content Available'),
+                    React.createElement('p', {
+                        key: 'desc',
+                        className: "text-muted-foreground mb-6 max-w-md mx-auto"
+                    }, 'Add and configure some addons, then sync them to start building your library.'),
+                    React.createElement('div', {
+                        key: 'buttons',
+                        className: "flex gap-3 justify-center"
+                    }, [
+                        React.createElement('button', {
+                            key: 'settings',
+                            onClick: () => window.location.href = '#/settings',
+                            className: "bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                        }, 'Configure Addons'),
+                        React.createElement('button', {
+                            key: 'sync',
+                            onClick: syncAddons,
+                            disabled: syncing,
+                            className: "bg-accent text-accent-foreground px-6 py-3 rounded-lg font-medium border border-border hover:bg-accent/80 transition-colors disabled:opacity-50"
+                        }, syncing ? 'Syncing...' : 'Sync Addons')
+                    ])
+                ])
+            ]);
+        };
+
+        const LibraryPage = () => {
+            const [watchlist, setWatchlist] = useState([]);
+            const [favorites, setFavorites] = useState([]);
+
+            useEffect(() => {
+                // Load user library from localStorage
+                const savedWatchlist = localStorage.getItem('crumble-watchlist');
+                const savedFavorites = localStorage.getItem('crumble-favorites');
+                
+                if (savedWatchlist) {
+                    setWatchlist(JSON.parse(savedWatchlist));
+                }
+                if (savedFavorites) {
+                    setFavorites(JSON.parse(savedFavorites));
+                }
+            }, []);
+
+            return React.createElement('div', {
+                className: "px-10 py-12"
+            }, [
+                React.createElement('div', {
+                    key: 'header',
+                    className: "mb-8"
+                }, [
+                    React.createElement('h1', {
+                        key: 'title',
+                        className: "text-3xl font-bold text-foreground mb-2"
+                    }, 'My Library'),
+                    React.createElement('p', {
+                        key: 'desc',
+                        className: "text-muted-foreground"
+                    }, 'Your personal collection of movies and shows')
+                ]),
+                
+                React.createElement('div', {
+                    key: 'sections',
+                    className: "space-y-12"
+                }, [
+                    React.createElement('div', {
+                        key: 'watchlist',
+                        className: "bg-card border border-border rounded-lg p-6"
+                    }, [
+                        React.createElement('h2', {
+                            key: 'title',
+                            className: "text-xl font-semibold text-foreground mb-4"
+                        }, `Watchlist (${watchlist.length})`),
+                        watchlist.length === 0 ? React.createElement('div', {
+                            key: 'empty',
+                            className: "text-center py-12"
+                        }, [
+                            React.createElement('p', {
+                                key: 'text',
+                                className: "text-muted-foreground mb-4"
+                            }, 'Your watchlist is empty'),
+                            React.createElement('button', {
+                                key: 'browse',
+                                onClick: () => window.location.href = '#/',
+                                className: "bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                            }, 'Browse Content')
+                        ]) : React.createElement('div', {
+                            key: 'content',
+                            className: "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+                        }, watchlist.map((item, index) => React.createElement(ContentCard, {
+                            key: index,
+                            item
+                        })))
+                    ]),
+                    
+                    React.createElement('div', {
+                        key: 'favorites',
+                        className: "bg-card border border-border rounded-lg p-6"
+                    }, [
+                        React.createElement('h2', {
+                            key: 'title',
+                            className: "text-xl font-semibold text-foreground mb-4"
+                        }, `Favorites (${favorites.length})`),
+                        favorites.length === 0 ? React.createElement('div', {
+                            key: 'empty',
+                            className: "text-center py-12"
+                        }, [
+                            React.createElement('p', {
+                                key: 'text',
+                                className: "text-muted-foreground mb-4"
+                            }, 'No favorites added yet'),
+                            React.createElement('button', {
+                                key: 'browse',
+                                onClick: () => window.location.href = '#/',
+                                className: "bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                            }, 'Browse Content')
+                        ]) : React.createElement('div', {
+                            key: 'content',
+                            className: "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+                        }, favorites.map((item, index) => React.createElement(ContentCard, {
+                            key: index,
+                            item
+                        })))
+                    ])
+                ])
+            ]);
+        };
+
+        const SettingsPage = () => {
+            const [addons, setAddons] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [syncing, setSyncing] = useState(false);
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [error, setError] = useState(null);
+            const [newAddon, setNewAddon] = useState({
+                name: '',
+                url: '',
+                type: 'both',
+                description: ''
+            });
+
+            const fetchAddons = useCallback(async () => {
+                try {
+                    setError(null);
+                    setLoading(true);
+                    const fetchedAddons = await addonService.getAddons();
+                    setAddons(fetchedAddons);
+                } catch (error) {
+                    setError(error.message);
+                    setAddons([]);
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+
+            const addAddon = useCallback(async () => {
+                if (!newAddon.name.trim() || !newAddon.url.trim()) {
+                    setError('Name and URL are required');
+                    return;
+                }
+                
+                try {
+                    setError(null);
+                    setLoading(true);
+                    
+                    const addonToAdd = {
+                        name: newAddon.name.trim(),
+                        url: newAddon.url.trim(),
+                        type: newAddon.type,
+                        description: newAddon.description.trim() || `${newAddon.type} addon`,
+                        enabled: true
+                    };
+                    
+                    await addonService.addAddon(addonToAdd);
+                    setNewAddon({ name: '', url: '', type: 'both', description: '' });
+                    setShowAddForm(false);
+                    await fetchAddons();
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            }, [newAddon, fetchAddons]);
+
+            const deleteAddon = useCallback(async (addonId) => {
+                try {
+                    setError(null);
+                    setLoading(true);
+                    await addonService.deleteAddon(addonId);
+                    await fetchAddons();
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            }, [fetchAddons]);
+
+            const toggleAddon = useCallback(async (addon) => {
+                try {
+                    setError(null);
+                    setLoading(true);
+                    await addonService.updateAddon(addon.id, { enabled: !addon.enabled });
+                    await fetchAddons();
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            }, [fetchAddons]);
+
+            const syncAddons = useCallback(async () => {
+                try {
+                    setSyncing(true);
+                    setError(null);
+                    await addonService.syncAllAddons();
+                    await fetchAddons();
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setSyncing(false);
+                }
+            }, [fetchAddons]);
+
+            const getStatusIcon = useCallback((addon) => {
+                if (!addon.enabled) {
+                    return React.createElement(Icons.AlertCircle, { className: "text-yellow-500" });
+                }
+                if (addon.lastSync) {
+                    return React.createElement(Icons.CheckCircle, { className: "text-green-500" });
+                }
+                return React.createElement(Icons.AlertCircle, { className: "text-blue-500" });
+            }, []);
+
+            useEffect(() => {
+                fetchAddons();
+            }, [fetchAddons]);
+
+            const enabledAddons = addons.filter(addon => addon.enabled);
+            const stats = addonService.getContentStats();
+
+            return React.createElement('div', {
+                className: "px-10 py-12 space-y-8"
+            }, [
+                // Header
+                React.createElement('div', {
+                    key: 'header',
+                    className: "flex justify-between items-center"
+                }, [
+                    React.createElement('div', {
+                        key: 'title-section'
+                    }, [
+                        React.createElement('h1', {
+                            key: 'title',
+                            className: "text-2xl font-bold text-foreground"
+                        }, 'Addon Manager'),
+                        React.createElement('p', {
+                            key: 'desc',
+                            className: "text-muted-foreground"
+                        }, 'Manage content sources and fetch new content')
+                    ]),
+                    React.createElement('div', {
+                        key: 'buttons',
+                        className: "flex gap-3"
+                    }, [
+                        React.createElement('button', {
+                            key: 'sync',
+                            onClick: syncAddons,
+                            disabled: syncing || enabledAddons.length === 0,
+                            className: "flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50",
+                            title: enabledAddons.length === 0 ? 'No enabled addons to sync' : 'Sync content from enabled addons'
+                        }, [
+                            React.createElement(Icons.RefreshCw, { 
+                                key: 'icon',
+                                className: syncing ? 'animate-spin' : ''
+                            }),
+                            syncing ? 'Syncing...' : 'Sync Content'
+                        ]),
+                        React.createElement('button', {
+                            key: 'add',
+                            onClick: () => setShowAddForm(true),
+                            className: "flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-lg font-medium border border-border hover:bg-accent/80 transition-colors"
+                        }, [
+                            React.createElement(Icons.Plus),
+                            'Add Addon'
+                        ])
+                    ])
+                ]),
+
+                // Error Display
+                error && React.createElement('div', {
+                    key: 'error',
+                    className: "bg-destructive/10 border border-destructive/20 rounded-lg p-4"
+                }, [
+                    React.createElement('div', {
+                        key: 'error-header',
+                        className: "flex items-center justify-between"
+                    }, [
+                        React.createElement('div', {
+                            key: 'error-title',
+                            className: "flex items-center gap-2 text-destructive"
+                        }, [
+                            React.createElement(Icons.AlertCircle),
+                            React.createElement('span', {
+                                className: "font-medium"
+                            }, 'Error')
+                        ]),
+                        React.createElement('button', {
+                            key: 'close',
+                            onClick: () => setError(null),
+                            className: "text-destructive/70 hover:text-destructive transition-colors"
+                        }, React.createElement(Icons.X))
+                    ]),
+                    React.createElement('p', {
+                        key: 'error-message',
+                        className: "text-sm text-destructive/80 mt-2"
+                    }, error)
+                ]),
+
+                // Summary
+                stats.total > 0 && React.createElement('div', {
+                    key: 'summary',
+                    className: "bg-card border border-border rounded-lg p-6"
+                }, [
+                    React.createElement('h3', {
+                        key: 'title',
+                        className: "text-lg font-semibold text-foreground mb-4"
+                    }, 'Content Summary'),
+                    React.createElement('div', {
+                        key: 'stats',
+                        className: "grid grid-cols-3 gap-6"
+                    }, [
+                        React.createElement('div', {
+                            key: 'total'
+                        }, [
+                            React.createElement('div', {
+                                key: 'number',
+                                className: "text-2xl font-bold text-primary"
+                            }, stats.total),
+                            React.createElement('div', {
+                                key: 'label',
+                                className: "text-sm text-muted-foreground"
+                            }, 'Total Items')
+                        ]),
+                        React.createElement('div', {
+                            key: 'enabled'
+                        }, [
+                            React.createElement('div', {
+                                key: 'number',
+                                className: "text-2xl font-bold text-green-500"
+                            }, stats.enabledAddons),
+                            React.createElement('div', {
+                                key: 'label',
+                                className: "text-sm text-muted-foreground"
+                            }, 'Enabled Addons')
+                        ]),
+                        React.createElement('div', {
+                            key: 'disabled'
+                        }, [
+                            React.createElement('div', {
+                                key: 'number',
+                                className: "text-2xl font-bold text-yellow-500"
+                            }, stats.addons - stats.enabledAddons),
+                            React.createElement('div', {
+                                key: 'label',
+                                className: "text-sm text-muted-foreground"
+                            }, 'Disabled Addons')
+                        ])
+                    ])
+                ]),
+
+                // Addons List
+                React.createElement('div', {
+                    key: 'addons-list',
+                    className: "bg-card border border-border rounded-lg"
+                }, [
+                    React.createElement('div', {
+                        key: 'list-header',
+                        className: "p-6 border-b border-border"
+                    }, React.createElement('h3', {
+                        className: "text-lg font-semibold text-foreground"
+                    }, `Configured Addons (${addons.length}) - ${enabledAddons.length} Enabled`)),
+                    React.createElement('div', {
+                        key: 'list-content',
+                        className: "p-6"
+                    }, addons.length === 0 ? React.createElement('div', {
+                        className: "text-center py-8"
+                    }, [
+                        React.createElement(Icons.Globe, {
+                            key: 'icon',
+                            className: "mx-auto text-muted-foreground mb-4"
+                        }),
+                        React.createElement('p', {
+                            key: 'text',
+                            className: "text-muted-foreground"
+                        }, 'No addons configured'),
+                        React.createElement('p', {
+                            key: 'subtext',
+                            className: "text-sm text-muted-foreground mb-4"
+                        }, 'Add your first addon to start fetching content'),
+                        React.createElement('button', {
+                            key: 'add-btn',
+                            onClick: () => setShowAddForm(true),
+                            className: "bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                        }, 'Add First Addon')
+                    ]) : React.createElement('div', {
+                        className: "space-y-4"
+                    }, addons.map(addon => React.createElement('div', {
+                        key: addon.id,
+                        className: "flex items-center justify-between p-4 border border-border rounded-lg"
+                    }, [
+                        React.createElement('div', {
+                            key: 'addon-info',
+                            className: "flex items-center gap-4"
+                        }, [
+                            getStatusIcon(addon),
+                            React.createElement('div', {
+                                key: 'addon-details'
+                            }, [
+                                React.createElement('div', {
+                                    key: 'name',
+                                    className: "font-medium text-foreground"
+                                }, addon.name || 'Unnamed Addon'),
+                                React.createElement('div', {
+                                    key: 'url',
+                                    className: "text-sm text-muted-foreground"
+                                }, addon.url || 'No URL'),
+                                React.createElement('div', {
+                                    key: 'meta',
+                                    className: "flex items-center gap-2 mt-1"
+                                }, [
+                                    React.createElement('span', {
+                                        key: 'type',
+                                        className: "text-xs bg-accent text-accent-foreground px-2 py-1 rounded"
+                                    }, addon.type || 'unknown'),
+                                    addon.contentCount !== undefined && React.createElement('span', {
+                                        key: 'count',
+                                        className: "text-xs text-muted-foreground"
+                                    }, `${addon.contentCount} items`),
+                                    addon.lastSync && React.createElement('span', {
+                                        key: 'sync',
+                                        className: "text-xs text-muted-foreground"
+                                    }, `Last sync: ${new Date(addon.lastSync).toLocaleString()}`)
+                                ])
+                            ])
+                        ]),
+                        React.createElement('div', {
+                            key: 'addon-actions',
+                            className: "flex items-center gap-2"
+                        }, [
+                            React.createElement('button', {
+                                key: 'toggle',
+                                onClick: () => toggleAddon(addon),
+                                disabled: loading,
+                                className: `px-3 py-1 text-sm rounded transition-colors disabled:opacity-50 ${
+                                    addon.enabled
+                                        ? 'bg-green-600 text-white hover:bg-green-700'
+                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                }`
+                            }, addon.enabled ? 'Enabled' : 'Disabled'),
+                            React.createElement('button', {
+                                key: 'delete',
+                                onClick: () => deleteAddon(addon.id),
+                                disabled: loading,
+                                className: "p-2 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
+                            }, React.createElement(Icons.Trash2))
+                        ])
+                    ]))))
+                ]),
+
+                // Add Addon Modal
+                showAddForm && React.createElement('div', {
+                    key: 'modal',
+                    className: "fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50"
+                }, React.createElement('div', {
+                    className: "bg-card border border-border rounded-lg p-6 w-full max-w-md"
+                }, [
+                    React.createElement('div', {
+                        key: 'modal-header',
+                        className: "flex justify-between items-center mb-4"
+                    }, [
+                        React.createElement('h3', {
+                            key: 'title',
+                            className: "text-lg font-semibold text-foreground"
+                        }, 'Add New Addon'),
+                        React.createElement('button', {
+                            key: 'close',
+                            onClick: () => {
+                                setShowAddForm(false);
+                                setError(null);
+                            },
+                            className: "text-muted-foreground hover:text-foreground"
+                        }, React.createElement(Icons.X, { size: 20 }))
+                    ]),
+                    
+                    React.createElement('div', {
+                        key: 'modal-form',
+                        className: "space-y-4"
+                    }, [
+                        React.createElement('div', {
+                            key: 'name-field'
+                        }, [
+                            React.createElement('label', {
+                                key: 'label',
+                                className: "block text-sm font-medium text-foreground mb-2"
+                            }, 'Name *'),
+                            React.createElement('input', {
+                                key: 'input',
+                                type: 'text',
+                                value: newAddon.name,
+                                onChange: (e) => setNewAddon({ ...newAddon, name: e.target.value }),
+                                className: "w-full p-2 bg-input border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-primary",
+                                placeholder: "e.g., Movie Database API"
+                            })
+                        ]),
+                        
+                        React.createElement('div', {
+                            key: 'url-field'
+                        }, [
+                            React.createElement('label', {
+                                key: 'label',
+                                className: "block text-sm font-medium text-foreground mb-2"
+                            }, 'URL *'),
+                            React.createElement('input', {
+                                key: 'input',
+                                type: 'url',
+                                value: newAddon.url,
+                                onChange: (e) => setNewAddon({ ...newAddon, url: e.target.value }),
+                                className: "w-full p-2 bg-input border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-primary",
+                                placeholder: "https://v3-cinemeta.strem.io"
+                            })
+                        ]),
+                        
+                        React.createElement('div', {
+                            key: 'type-field'
+                        }, [
+                            React.createElement('label', {
+                                key: 'label',
+                                className: "block text-sm font-medium text-foreground mb-2"
+                            }, 'Type'),
+                            React.createElement('select', {
+                                key: 'select',
+                                value: newAddon.type,
+                                onChange: (e) => setNewAddon({ ...newAddon, type: e.target.value }),
+                                className: "w-full p-2 bg-input border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                            }, [
+                                React.createElement('option', { key: 'both', value: 'both' }, 'Movies & TV Shows'),
+                                React.createElement('option', { key: 'movies', value: 'movies' }, 'Movies Only'),
+                                React.createElement('option', { key: 'tv', value: 'tv' }, 'TV Shows Only')
+                            ])
+                        ]),
+
+                        React.createElement('div', {
+                            key: 'desc-field'
+                        }, [
+                            React.createElement('label', {
+                                key: 'label',
+                                className: "block text-sm font-medium text-foreground mb-2"
+                            }, 'Description'),
+                            React.createElement('input', {
+                                key: 'input',
+                                type: 'text',
+                                value: newAddon.description,
+                                onChange: (e) => setNewAddon({ ...newAddon, description: e.target.value }),
+                                className: "w-full p-2 bg-input border border-border rounded text-foreground focus:outline-none focus:ring-2 focus:ring-primary",
+                                placeholder: "Brief description of the addon"
+                            })
+                        ])
+                    ]),
+                    
+                    React.createElement('div', {
+                        key: 'modal-buttons',
+                        className: "flex gap-2 mt-6"
+                    }, [
+                        React.createElement('button', {
+                            key: 'add',
+                            onClick: addAddon,
+                            disabled: !newAddon.name?.trim() || !newAddon.url?.trim() || loading,
+                            className: "flex-1 bg-primary text-primary-foreground py-2 px-4 rounded font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        }, loading ? 'Adding...' : 'Add Addon'),
+                        React.createElement('button', {
+                            key: 'cancel',
+                            onClick: () => {
+                                setShowAddForm(false);
+                                setError(null);
+                            },
+                            className: "px-4 py-2 border border-border rounded text-muted-foreground hover:bg-accent transition-colors"
+                        }, 'Cancel')
+                    ])
+                ]))
+            ]);
+        };
+
+        const AppContent = () => {
+            const { activeTab, error, setError } = useApp();
+
+            useEffect(() => {
+                const handleError = (event) => {
+                    console.error('Global error:', event.error);
+                    setError(`Application Error: ${event.error.message}`);
+                };
+
+                const handleUnhandledRejection = (event) => {
+                    console.error('Unhandled promise rejection:', event.reason);
+                    setError(`Network Error: ${event.reason}`);
+                };
+
+                window.addEventListener('error', handleError);
+                window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+                return () => {
+                    window.removeEventListener('error', handleError);
+                    window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+                };
+            }, [setError]);
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'home':
+                        return React.createElement(HomePage);
+                    case 'library':
+                        return React.createElement(LibraryPage);
+                    case 'settings':
+                        return React.createElement(SettingsPage);
+                    default:
+                        return React.createElement(HomePage);
+                }
+            };
+
+            return React.createElement('div', {
+                className: "dark"
+            }, React.createElement('div', {
+                className: "min-h-screen bg-background text-foreground"
+            }, [
+                // Global Error Display
+                error && React.createElement('div', {
+                    key: 'error',
+                    className: "fixed top-4 right-4 z-[100] bg-destructive text-destructive-foreground p-4 rounded-lg shadow-lg max-w-md"
+                }, React.createElement('div', {
+                    className: "flex justify-between items-start"
+                }, [
+                    React.createElement('p', {
+                        key: 'message',
+                        className: "text-sm"
+                    }, error),
+                    React.createElement('button', {
+                        key: 'close',
+                        onClick: () => setError(null),
+                        className: "ml-2 text-destructive-foreground/70 hover:text-destructive-foreground transition-colors"
+                    }, '×')
+                ])),
+
+                // Floating Sidebar
+                React.createElement('div', {
+                    key: 'sidebar',
+                    className: "fixed left-4 top-1/2 -translate-y-1/2 z-50"
+                }, React.createElement(Sidebar)),
+
+                // Main Content Area
+                React.createElement('div', {
+                    key: 'main',
+                    className: "ml-28 transition-all duration-300"
+                }, [
+                    React.createElement(Header, { key: 'header' }),
+                    React.createElement('main', {
+                        key: 'content',
+                        className: "relative px-6"
+                    }, renderContent())
+                ])
+            ]));
+        };
+
+        const App = () => {
+            return React.createElement(AppProvider, {}, React.createElement(AppContent));
+        };
+
+        ReactDOM.render(React.createElement(App), document.getElementById('root'));
+    </script>
+</body>
+</html>
