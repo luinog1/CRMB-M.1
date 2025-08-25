@@ -1,0 +1,712 @@
+{
+  "project_overview": {
+    "name": "CRMB Streaming WebApp",
+    "type": "Full-stack media center web application",
+    "target_platform": "macOS (Chrome/Safari optimized)",
+    "architecture": "React frontend + Node.js backend with Stremio compatibility"
+  },
+  "platform_identity": {
+    "name": "CRUMBLE",
+    "tagline": "OTT Streaming Platform Interface",
+    "branding": {
+      "logo_style": "minimalist_text",
+      "primary_color": "#ffffff",
+      "accent_color": "#6366f1",
+      "background_theme": "dark_gradient"
+    }
+  },
+  "frontend_architecture": {
+    "framework": "React 18+",
+    "language": "JavaScript (ES6+)",
+    "styling": "Custom CSS with Flexbox/Grid, CSS custom properties",
+    "state_management": "React Context API + Custom Hooks",
+    "build_tool": "Create React App or Vite"
+  },
+  "tab_navigation_system": {
+    "tabs": [
+      {
+        "id": "home",
+        "name": "Home",
+        "icon": "home",
+        "route": "/",
+        "description": "Main content discovery with hero banner and trending carousels",
+        "active_indicator": "bottom_border_highlight"
+      },
+      {
+        "id": "library",
+        "name": "Library",
+        "icon": "collection",
+        "route": "/library",
+        "description": "Personal collection management - Watchlist, Favorites, Continue Watching",
+        "active_indicator": "bottom_border_highlight"
+      },
+      {
+        "id": "settings",
+        "name": "Settings",
+        "icon": "cog",
+        "route": "/settings",
+        "description": "Platform configuration, integrations, and preferences",
+        "active_indicator": "bottom_border_highlight"
+      }
+    ],
+    "navigation_behavior": {
+      "layout": "left_sidebar",
+      "persistent_search": true,
+      "smooth_transitions": true,
+      "state_preservation": true,
+      "sidebar_width": "280px",
+      "keyboard_shortcuts": {
+        "home": "Alt+1",
+        "library": "Alt+2",
+        "settings": "Alt+3"
+      }
+    }
+  },
+  "home_tab_features": {
+    "hero_banner": {
+      "layout": "full_width_backdrop",
+      "content_source": "featured_trending_movie",
+      "background_treatment": "cinematic_gradient_overlay",
+      "text_positioning": "bottom_left_overlay",
+      "interactive_elements": {
+        "primary_cta": {
+          "label": "Play",
+          "style": "solid_button",
+          "icon": "play_filled"
+        },
+        "secondary_actions": [
+          {
+            "label": "My List",
+            "style": "outline_button",
+            "icon": "plus"
+          },
+          {
+            "label": "More Info",
+            "style": "text_button",
+            "icon": "info"
+          }
+        ]
+      },
+      "metadata_display": [
+        "rating_badge",
+        "release_year",
+        "runtime",
+        "genre_tags",
+        "synopsis_preview"
+      ]
+    },
+    "content_sections": [
+      {
+        "id": "trending_now",
+        "title": "Trending Now",
+        "source": "tmdb_trending_day",
+        "layout": "horizontal_carousel",
+        "card_count": 20,
+        "cards_per_view": 6
+      },
+      {
+        "id": "new_releases",
+        "title": "New Releases",
+        "source": "tmdb_movie_upcoming",
+        "layout": "horizontal_carousel",
+        "card_count": 20,
+        "cards_per_view": 6
+      },
+      {
+        "id": "action_movies",
+        "title": "Action Movies",
+        "source": "tmdb_genre_action",
+        "layout": "horizontal_carousel",
+        "card_count": 20,
+        "cards_per_view": 6
+      }
+    ],
+    "carousel_behavior": {
+      "scroll_type": "smooth_horizontal",
+      "touch_enabled": true,
+      "hover_effects": "scale_and_overlay",
+      "lazy_loading": true,
+      "infinite_scroll": false
+    }
+  },
+  "library_tab_features": {
+    "header_section": {
+      "title": "My Library",
+      "subtitle": "Manage your personal collection of movies and shows. Keep track of what you want to watch and save your favorites for easy access.",
+      "collection_stats": {
+        "show_item_count": true,
+        "format": "Your Collection • X items"
+      }
+    },
+    "quick_actions": {
+      "continue_watching": {
+        "style": "prominent_button",
+        "icon": "play_circle",
+        "label": "Continue Watching"
+      }
+    },
+    "collection_tabs": [
+      {
+        "id": "watchlist",
+        "label": "Watchlist",
+        "count_display": true,
+        "icon": "bookmark"
+      },
+      {
+        "id": "favorites",
+        "label": "Favorites",
+        "count_display": true,
+        "icon": "heart"
+      }
+    ],
+    "content_organization": {
+      "sort_options": [
+        "recently_added",
+        "title_alphabetical",
+        "release_date",
+        "rating"
+      ],
+      "view_modes": [
+        {
+          "type": "grid",
+          "icon": "grid_3x3",
+          "cards_per_row": 3
+        },
+        {
+          "type": "list",
+          "icon": "list_bullets",
+          "compact_view": true
+        }
+      ],
+      "filter_options": [
+        "all_content",
+        "movies_only",
+        "series_only",
+        "watched_status"
+      ]
+    },
+    "sync_integrations": {
+      "mdblist": {
+        "import_capability": true,
+        "bidirectional_sync": true,
+        "sync_frequency": "daily"
+      },
+      "trakt": {
+        "scrobbling": true,
+        "import_history": true
+      }
+    }
+  },
+  "settings_tab_features": {
+    "header_section": {
+      "title": "Settings",
+      "subtitle": "Configure your CRUMBLE streaming platform. Manage integrations, player settings, and customize your viewing experience."
+    },
+    "settings_categories": [
+      {
+        "id": "player",
+        "label": "Player",
+        "icon": "play_circle",
+        "description": "Video player preferences and behavior"
+      },
+      {
+        "id": "addons",
+        "label": "Addons",
+        "icon": "puzzle_piece",
+        "description": "Manage streaming addons and sources"
+      },
+      {
+        "id": "catalogs",
+        "label": "Catalogs",
+        "icon": "folder_open",
+        "description": "Configure content catalogs and metadata sources"
+      },
+      {
+        "id": "apis",
+        "label": "APIs",
+        "icon": "code_bracket",
+        "description": "External API integrations and keys"
+      },
+      {
+        "id": "external",
+        "label": "External",
+        "icon": "arrow_top_right_on_square",
+        "description": "External player settings and configurations"
+      }
+    ],
+    "player_settings": {
+      "auto_play_next": {
+        "type": "toggle",
+        "label": "Auto-play next episode",
+        "description": "Automatically start the next episode when current one ends",
+        "default": true
+      },
+      "skip_intro": {
+        "type": "toggle",
+        "label": "Skip intro/outro",
+        "description": "Automatically skip opening and ending sequences",
+        "default": false
+      },
+      "default_quality": {
+        "type": "dropdown",
+        "label": "Default video quality",
+        "options": ["Full HD (1080p)", "HD (720p)", "SD (480p)", "Auto"],
+        "default": "Full HD (1080p)"
+      },
+      "subtitle_language": {
+        "type": "dropdown",
+        "label": "Subtitle language",
+        "options": ["English", "Spanish", "French", "German", "Off"],
+        "default": "English"
+      }
+    },
+    "api_integrations": {
+      "tmdb": {
+        "name": "TMDB API Integration",
+        "description": "The Movie Database API for metadata and images",
+        "status_indicator": true,
+        "connection_states": ["Connected", "Disconnected", "Error"],
+        "configuration": {
+          "api_key_field": {
+            "type": "password_input",
+            "placeholder": "Enter TMDB API Key",
+            "validation": "test_connection_on_save"
+          },
+          "help_link": {
+            "text": "Get your API key from themoviedb.org",
+            "url": "https://themoviedb.org"
+          }
+        }
+      },
+      "mdblist": {
+        "name": "MDBList Integration",
+        "description": "MDBList API for enhanced movie ratings and lists",
+        "status_indicator": true,
+        "connection_states": ["Connected", "Disconnected"],
+        "configuration": {
+          "enable_toggle": {
+            "label": "Enable MDBList Integration",
+            "description": "Use MDBList for additional ratings and recommendations"
+          }
+        }
+      }
+    },
+    "external_player_settings": {
+      "title": "External Player Settings",
+      "description": "Configure external video players for enhanced playback",
+      "default_player": {
+        "type": "dropdown",
+        "label": "Default external player",
+        "options": ["VLC Media Player", "Infuse", "Outplayer", "Custom Command"],
+        "default": "VLC Media Player"
+      },
+      "auto_launch": {
+        "type": "toggle",
+        "label": "Auto-launch external player",
+        "description": "Automatically open links in external player",
+        "default": false
+      },
+      "custom_command": {
+        "type": "text_input",
+        "label": "Custom player command",
+        "placeholder": "e.g., /usr/bin/vlc --fullscreen %URL%",
+        "description": "Use %URL% as placeholder for the stream URL"
+      }
+    },
+    "addon_management": {
+      "installed_addons": [
+        {
+          "name": "Torrentio",
+          "version": "v0.0.14",
+          "description": "Provides torrent streams from various providers",
+          "status": "enabled",
+          "last_updated": "2024-01-15",
+          "actions": ["configure", "disable", "remove"]
+        },
+        {
+          "name": "ThePirateBay+",
+          "version": "v1.0.0",
+          "description": "Enhanced TPB addon with better filtering",
+          "status": "enabled",
+          "last_updated": "2024-01-12",
+          "actions": ["configure", "disable", "remove"]
+        },
+        {
+          "name": "RARBG",
+          "version": "v1.0.0",
+          "description": "RARBG torrent streams addon",
+          "status": "disabled",
+          "last_updated": "2024-01-10",
+          "actions": ["enable", "configure", "remove"]
+        }
+      ],
+      "addon_discovery": {
+        "install_button": {
+          "label": "Install Addon",
+          "style": "outline_button",
+          "icon": "plus"
+        }
+      }
+    },
+    "catalog_configuration": {
+      "imdb_catalog": {
+        "type": "toggle",
+        "label": "Enable IMDB catalog",
+        "description": "Use IMDB as a content discovery source",
+        "default": true
+      },
+      "trakt_integration": {
+        "type": "toggle",
+        "label": "Enable Trakt.tv integration",
+        "description": "Sync with Trakt.tv for personalized recommendations",
+        "default": false
+      },
+      "content_filters": {
+        "min_rating": {
+          "type": "dropdown",
+          "label": "Minimum IMDB rating",
+          "options": ["6.0+", "7.0+", "8.0+", "No filter"],
+          "default": "6.0+"
+        },
+        "release_year": {
+          "type": "dropdown",
+          "label": "Release year",
+          "options": ["2000+", "2010+", "2015+", "2020+", "No filter"],
+          "default": "2000+"
+        }
+      }
+    }
+  },
+  "ui_design_system": {
+    "color_palette": {
+      "primary_background": "#0a0a0a",
+      "secondary_background": "#1a1a1a",
+      "card_background": "#2a2a2a",
+      "text_primary": "#ffffff",
+      "text_secondary": "#a1a1aa",
+      "text_muted": "#71717a",
+      "accent_primary": "#6366f1",
+      "accent_secondary": "#8b5cf6",
+      "success_color": "#10b981",
+      "warning_color": "#f59e0b",
+      "error_color": "#ef4444"
+    },
+    "typography": {
+      "font_family": "Inter, system-ui, sans-serif",
+      "headings": {
+        "hero_title": "48px/1.1 bold",
+        "section_title": "24px/1.2 semibold",
+        "card_title": "16px/1.3 medium",
+        "body_text": "14px/1.4 regular"
+      }
+    },
+    "spacing_system": {
+      "base_unit": "8px",
+      "content_padding": "24px",
+      "card_spacing": "16px",
+      "section_margin": "48px"
+    },
+    "component_styles": {
+      "buttons": {
+        "primary": {
+          "background": "#6366f1",
+          "text": "#ffffff",
+          "border_radius": "8px",
+          "padding": "12px 24px"
+        },
+        "secondary": {
+          "background": "transparent",
+          "text": "#ffffff",
+          "border": "1px solid #ffffff",
+          "border_radius": "8px",
+          "padding": "12px 24px"
+        }
+      },
+      "cards": {
+        "movie_card": {
+          "background": "#2a2a2a",
+          "border_radius": "12px",
+          "aspect_ratio": "2:3",
+          "hover_transform": "scale(1.05)",
+          "transition": "all 0.2s ease"
+        }
+      },
+      "modals": {
+        "backdrop": "rgba(0, 0, 0, 0.8)",
+        "content_background": "#1a1a1a",
+        "border_radius": "16px",
+        "max_width": "800px"
+      }
+    }
+  },
+  "interaction_patterns": {
+    "movie_card_interactions": {
+      "hover_behavior": {
+        "scale_effect": "1.05x",
+        "overlay_fade": "metadata_overlay",
+        "rating_display": "show_on_hover",
+        "action_buttons": "fade_in_bottom"
+      },
+      "click_behavior": {
+        "primary_action": "show_detail_modal",
+        "modal_content": [
+          "hero_backdrop",
+          "movie_poster",
+          "title_and_metadata",
+          "synopsis",
+          "cast_and_crew",
+          "ratings_aggregate",
+          "similar_content",
+          "action_buttons"
+        ]
+      }
+    },
+    "navigation_patterns": {
+      "tab_switching": "smooth_slide_transition",
+      "back_button": "browser_history_aware",
+      "search_overlay": "modal_with_backdrop_blur"
+    }
+  },
+  "backend_architecture": {
+    "primary_stack": {
+      "runtime": "Node.js 18+",
+      "framework": "Express.js",
+      "language": "JavaScript (ES6+)",
+      "rationale": "Optimal for web-focused deployment, excellent macOS compatibility, easier maintenance"
+    },
+    "stremio_compatibility_layer": {
+      "addon_protocol": {
+        "version": "1.0",
+        "implementation": "Full compatibility with existing Stremio addons",
+        "sdk_integration": {
+          "package": "stremio-addon-sdk",
+          "version": "1.6.10+",
+          "custom_wrapper": "Simplified addon management for web interface"
+        }
+      },
+      "addon_management": {
+        "discovery": {
+          "community_catalog": "https://stremio-addons.netlify.app/",
+          "manual_installation": "Via URL or manifest upload",
+          "curated_list": "Pre-selected safe and reliable addons"
+        },
+        "frontend_integration": {
+          "settings_page": "AddonManager.js component",
+          "status_indicators": "Real-time addon health monitoring",
+          "user_interface": "Simple toggle/priority ordering"
+        }
+      }
+    },
+    "api_endpoints": {
+      "tmdb_integration": {
+        "base_endpoint": "/api/tmdb",
+        "routes": {
+          "/configuration": "TMDB configuration data",
+          "/trending/all/day": "Hero banner content",
+          "/movie/popular": "Popular movies carousel",
+          "/movie/upcoming": "Coming soon carousel",
+          "/movie/top_rated": "Top rated carousel",
+          "/search/multi": "Search functionality",
+          "/movie/{id}": "Movie details modal",
+          "/movie/{id}/videos": "Trailers and videos",
+          "/movie/{id}/credits": "Cast and crew info"
+        },
+        "frontend_integration": "TMDBService.js + React hooks",
+        "caching": "5-15 minute cache with React Query",
+        "error_handling": "User-friendly error boundaries"
+      },
+      "stremio_bridge": {
+        "base_endpoint": "/api/stremio",
+        "routes": {
+          "/resolve/{id}": "Stream resolution for play buttons",
+          "/addons": "Addon management",
+          "/catalogs": "Content discovery",
+          "/meta/{type}/{id}": "Enhanced metadata"
+        },
+        "frontend_integration": "StremioService.js + custom hooks"
+      },
+      "user_data": {
+        "base_endpoint": "/api/user",
+        "routes": {
+          "/watchlist": "Personal watchlist management",
+          "/favorites": "Favorites collection",
+          "/history": "Watch history tracking",
+          "/preferences": "User settings and preferences"
+        },
+        "storage": "SQLite database + localStorage sync"
+      }
+    }
+  },
+  "frontend_backend_integration": {
+    "data_flow": {
+      "page_load": "Frontend → Backend API → TMDB/Stremio → Cache → Frontend",
+      "search": "SearchComponent → /api/tmdb/search → Real-time results",
+      "play_action": "PlayButton → /api/stremio/resolve → External player launch",
+      "watchlist": "WatchlistButton → /api/user/watchlist → UI update"
+    },
+    "state_management": {
+      "global_state": "React Context for user preferences, addon status",
+      "api_cache": "React Query for TMDB data caching",
+      "local_storage": "User preferences, recent searches",
+      "sync_strategy": "Background sync with backend every 5 minutes"
+    },
+    "error_handling": {
+      "network_errors": "Cached fallback + retry mechanisms",
+      "api_failures": "User-friendly error messages",
+      "rate_limits": "Exponential backoff + loading states",
+      "addon_failures": "Graceful degradation + fallback options"
+    }
+  },
+  "performance_requirements": {
+    "frontend_benchmarks": {
+      "lighthouse_scores": {
+        "performance": "90+",
+        "accessibility": "95+",
+        "best_practices": "90+",
+        "seo": "90+"
+      },
+      "core_web_vitals": {
+        "lcp": "< 2.5s",
+        "fid": "< 100ms",
+        "cls": "< 0.1"
+      },
+      "bundle_size": {
+        "initial": "< 250KB gzipped",
+        "chunks": "< 100KB each"
+      },
+      "animations": "60fps for all scrolling and transitions"
+    },
+    "backend_benchmarks": {
+      "response_times": {
+        "tmdb_proxy": "< 200ms average",
+        "addon_discovery": "< 500ms average",
+        "stream_resolution": "< 2s average",
+        "catalog_loading": "< 1s average"
+      },
+      "resource_usage": {
+        "memory": "< 100MB base, < 300MB peak",
+        "cpu": "< 5% idle, < 20% under load"
+      }
+    }
+  },
+  "development_structure": {
+    "frontend_structure": {
+      "src/": {
+        "components/": {
+          "common/": "Reusable UI components",
+          "search/": "SearchComponent.js (mandatory implementation)",
+          "carousel/": "Content carousel components",
+          "hero/": "Hero banner component",
+          "modals/": "Detail modals and overlays"
+        },
+        "pages/": {
+          "HomePage.js": "Main dashboard with hero + carousels",
+          "LibraryPage.js": "Personal collections management",
+          "SettingsPage.js": "Configuration and integrations"
+        },
+        "services/": {
+          "tmdbService.js": "TMDB API integration",
+          "stremioService.js": "Stremio addon communication",
+          "userService.js": "User data management"
+        },
+        "hooks/": "Custom React hooks for data fetching",
+        "contexts/": "React Context providers",
+        "utils/": "Utility functions",
+        "styles/": "Global styles and themes"
+      }
+    },
+    "backend_structure": {
+      "server.js": "Express server entry point",
+      "routes/": {
+        "api/": "Main API routes",
+        "tmdb/": "TMDB proxy routes",
+        "stremio/": "Stremio integration routes",
+        "user/": "User data routes"
+      },
+      "services/": {
+        "tmdbService.js": "TMDB API wrapper",
+        "stremioService.js": "Stremio addon manager",
+        "addonManager.js": "Addon lifecycle management",
+        "streamResolver.js": "Stream resolution logic",
+        "cacheManager.js": "Caching layer"
+      },
+      "middleware/": "Express middleware",
+      "config/": "Configuration management",
+      "database/": "SQLite schema and migrations"
+    }
+  },
+  "macos_browser_optimization": {
+    "safari_specific": {
+      "webkit_optimizations": true,
+      "privacy_compatibility": "Safari tracking prevention compatible",
+      "css_compatibility": "Webkit vendor prefixes where needed",
+      "touch_events": "Safari touch event handling"
+    },
+    "chrome_specific": {
+      "v8_optimizations": true,
+      "service_worker": "For offline functionality",
+      "web_apis": "Chrome-specific APIs for enhanced features"
+    },
+    "responsive_design": {
+      "breakpoints": "Mobile-first approach",
+      "touch_targets": "44px minimum touch targets",
+      "keyboard_navigation": "Full keyboard accessibility"
+    }
+  },
+  "deployment_integration": {
+    "frontend_deployment": {
+      "build_process": "npm run build → static assets",
+      "hosting_options": ["Vercel", "Netlify", "GitHub Pages"],
+      "cdn_integration": "Cloudflare for asset delivery"
+    },
+    "backend_deployment": {
+      "hosting_options": ["Railway", "Render", "Vercel API"],
+      "environment_management": "Secure .env handling",
+      "database_persistence": "SQLite file persistence"
+    },
+    "full_stack_deployment": {
+      "development": "Frontend (3000) + Backend (3001)",
+      "production": "Single domain with API proxy",
+      "docker_support": "Complete containerization option"
+    }
+  },
+  "responsive_behavior": {
+    "breakpoints": {
+      "mobile": "768px",
+      "tablet": "1024px",
+      "desktop": "1280px",
+      "wide": "1920px"
+    },
+    "adaptive_layouts": {
+      "carousel_cards": {
+        "mobile": 2,
+        "tablet": 4,
+        "desktop": 6,
+        "wide": 8
+      },
+      "library_grid": {
+        "mobile": 2,
+        "tablet": 3,
+        "desktop": 4,
+        "wide": 6
+      }
+    }
+  },
+  "performance_optimizations": {
+    "image_loading": {
+      "strategy": "progressive_lazy_loading",
+      "placeholder": "blur_up_technique",
+      "formats": ["webp", "avif", "jpg_fallback"]
+    },
+    "data_caching": {
+      "movie_metadata": "7d",
+      "trending_content": "6h",
+      "user_collections": "persistent_local"
+    },
+    "code_splitting": {
+      "route_based": true,
+      "component_lazy_loading": true,
+      "addon_dynamic_imports": true
+    }
+  }
+}
