@@ -29,6 +29,33 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/addons/available - Get available addons from config (duplicate endpoint for compatibility)
+router.get('/available', async (req, res) => {
+  try {
+    console.log('🔍 Getting available addons from addon routes...');
+    const availableAddons = addonClient.getAvailableAddons();
+    console.log(`📋 Found ${availableAddons.length} available addons`);
+
+    res.json({
+      success: true,
+      addons: availableAddons,
+      metadata: {
+        count: availableAddons.length,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error getting available addons:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      metadata: {
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
 // GET /api/addons/available - Get available addons from config
 router.get('/available', async (req, res) => {
   try {

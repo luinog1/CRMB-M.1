@@ -35,6 +35,10 @@ class StremioAddonClient {
 
        console.log(`✅ Addon initialization complete: ${successful} successful, ${failed} failed`);
 
+       // Clear cache on initialization to ensure fresh data
+       this.clearCache();
+       console.log('🧹 Cache cleared on initialization');
+
        if (successful === 0) {
          console.error('❌ No addons could be loaded! The application may not function properly.');
          return false;
@@ -59,16 +63,77 @@ class StremioAddonClient {
   async loadAddon(url) {
     try {
       console.log(`🔍 Loading addon from ${url}...`);
-      const result = await this.client.detectFromURL(url);
-      
-      if (result && result.addon && result.addon.manifest && result.addon.manifest.id) {
-        // Store the addon instance with its client
-        this.addons.set(result.addon.manifest.id, {
-          manifest: result.addon.manifest,
-          client: result.addon
+
+      // First try to get manifest through our proxy endpoint
+      const axios = require('axios');
+      const manifestResponse = await axios.get(`http://localhost:3001/api/manifest/proxy?url=${encodeURIComponent(url)}`, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'CRMB/1.0'
+        }
+      });
+
+      const manifest = manifestResponse.data;
+
+      if (manifest && manifest.id) {
+        // Ensure manifest has a URL (fallback to the provided URL if not set)
+        if (!manifest.url) {
+          console.warn(`⚠️ Manifest for ${manifest.name} missing URL, using provided URL: ${url}`);
+          manifest.url = url.replace('/manifest.json', '');
+        }
+
+        // Create a mock addon object with the manifest
+        const addon = {
+          manifest: manifest,
+          get: async (resource, type, id, extra = {}) => {
+            // Use manifest.url if available, otherwise fallback to the original URL
+            const addonBaseUrl = manifest.url || url.replace('/manifest.json', '');
+            console.log(`🔍 Using addon base URL: ${addonBaseUrl} for ${resource}/${type}/${id}`);
+
+            try {
+              if (resource === 'catalog') {
+                const response = await axios.get(`${addonBaseUrl}/catalog/${type}/${id}.json`, {
+                  params: extra,
+                  maxRedirects: 5,
+                  timeout: 10000
+                });
+                return response.data || { metas: [] };
+              } else if (resource === 'meta') {
+                const response = await axios.get(`${addonBaseUrl}/meta/${type}/${id}.json`, {
+                  maxRedirects: 5,
+                  timeout: 10000
+                });
+                return response.data || { meta: null };
+              } else if (resource === 'stream') {
+                const response = await axios.get(`${addonBaseUrl}/stream/${type}/${id}.json`, {
+                  maxRedirects: 5,
+                  timeout: 10000
+                });
+                return response.data || { streams: [] };
+              }
+              return {};
+            } catch (error) {
+              console.error(`❌ Error making addon request to ${addonBaseUrl}/${resource}/${type}/${id}.json:`, error.message);
+              if (error.response) {
+                console.error(`Response status: ${error.response.status}`);
+                console.error(`Response headers:`, error.response.headers);
+                console.error(`Response data:`, error.response.data);
+              }
+              return resource === 'catalog' ? { metas: [] } :
+                     resource === 'meta' ? { meta: null } :
+                     resource === 'stream' ? { streams: [] } : {};
+            }
+          }
+        };
+
+        // Store the addon instance with enhanced manifest
+        this.addons.set(manifest.id, {
+          manifest: manifest,
+          client: addon
         });
-        console.log(`✅ Loaded addon: ${result.addon.manifest.name} (${result.addon.manifest.id})`);
-        return result.addon;
+
+        console.log(`✅ Loaded addon: ${manifest.name} (${manifest.id}) with URL: ${manifest.url}`);
+        return addon;
       } else {
         console.error(`❌ Invalid addon from ${url}: missing manifest or ID`);
         return null;
@@ -84,6 +149,10 @@ class StremioAddonClient {
    * @returns {Array} - Array of addon manifests
    */
   getAddons() {
+    console.log(`🔍 getAddons called, current addons in Map: ${this.addons.size}`);
+    this.addons.forEach((addon, id) => {
+      console.log(`🔍 Loaded addon: ${id} - ${addon.manifest.name}`);
+    });
     return Array.from(this.addons.values()).map(item => item.manifest);
   }
 
@@ -148,27 +217,94 @@ class StremioAddonClient {
    * @returns {Promise<object|null>} - The added addon or null if failed
    */
   async addAddon(url) {
-    const addon = await this.loadAddon(url);
-    if (addon) {
-      // Check if this addon is already in the config
-      const existingAddon = addonsConfig.addons.find(a => a.id === addon.manifest.id);
+    console.log(`🔍 Adding addon from URL: ${url}`);
+    
+    try {
+      // First validate the addon using our proxy
+      const axios = require('axios');
+      const validationResponse = await axios.get(`http://localhost:3001/api/manifest/validate?url=${encodeURIComponent(url)}`, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'CRMB/1.0'
+        }
+      });
       
-      if (!existingAddon) {
-        // Add to config for persistence
-        addonsConfig.addons.push({
-          id: addon.manifest.id,
-          name: addon.manifest.name,
-          url: url,
-          description: addon.manifest.description || '',
-          resources: addon.manifest.resources || [],
-          types: addon.manifest.types || [],
-          enabled: true
+      if (validationResponse.data.success && validationResponse.data.validation.valid) {
+        const manifest = validationResponse.data.validation.manifest;
+        
+        // Check if this addon is already in the config
+        const existingAddon = addonsConfig.addons.find(a => a.id === manifest.id);
+        
+        if (!existingAddon) {
+          // Add to config for persistence
+          addonsConfig.addons.push({
+            id: manifest.id,
+            name: manifest.name,
+            url: url,
+            description: manifest.description || '',
+            resources: manifest.resources || [],
+            types: manifest.types || [],
+            enabled: true
+          });
+        }
+        
+        // Create a mock addon object with the correct implementation
+        const addon = {
+          manifest: manifest,
+          get: async (resource, type, id, extra = {}) => {
+            // Implement addon client methods by proxying to external addon URLs
+            const addonBaseUrl = manifest.url || url;
+            try {
+              if (resource === 'catalog') {
+                const response = await axios.get(`${addonBaseUrl}/catalog/${type}/${id}.json`, {
+                  params: extra,
+                  maxRedirects: 5,
+                  timeout: 10000
+                });
+                return response.data || { metas: [] };
+              } else if (resource === 'meta') {
+                const response = await axios.get(`${addonBaseUrl}/meta/${type}/${id}.json`, {
+                  maxRedirects: 5,
+                  timeout: 10000
+                });
+                return response.data || { meta: null };
+              } else if (resource === 'stream') {
+                const response = await axios.get(`${addonBaseUrl}/stream/${type}/${id}.json`, {
+                  maxRedirects: 5,
+                  timeout: 10000
+                });
+                return response.data || { streams: [] };
+              }
+              return {};
+            } catch (error) {
+              console.error(`❌ Error making addon request to ${addonBaseUrl}/catalog/${type}/${id}.json:`, error.message);
+              if (error.response) {
+                console.error(`Response status: ${error.response.status}`);
+                console.error(`Response headers:`, error.response.headers);
+                console.error(`Response data:`, error.response.data);
+              }
+              return resource === 'catalog' ? { metas: [] } :
+                     resource === 'meta' ? { meta: null } :
+                     resource === 'stream' ? { streams: [] } : {};
+            }
+          }
+        };
+        
+        // Store the addon instance
+        this.addons.set(manifest.id, {
+          manifest: manifest,
+          client: addon
         });
+        
+        console.log(`✅ Added addon: ${manifest.name} (${manifest.id})`);
+        return addon.manifest;
+      } else {
+        throw new Error('Addon validation failed');
       }
-      
-      return addon.manifest;
+    } catch (error) {
+      console.error(`❌ Failed to add addon from ${url}:`, error);
+      throw error;
     }
-    return null;
   }
 
   /**
@@ -229,16 +365,7 @@ class StremioAddonClient {
   async getCatalog(args) {
     const { type, id, extra = {} } = args;
     console.log(`🔍 Getting catalog from external addons: type=${type}, id=${id}`, extra);
-    
-    const cacheKey = `catalog:${type}:${id}:${JSON.stringify(extra)}`;
-    
-    // Check cache first
-    const cachedResult = this.getFromCache(cacheKey);
-    if (cachedResult) {
-      console.log(`🔄 Returning cached catalog for ${cacheKey}`);
-      return cachedResult;
-    }
-    
+
     // Find addons that support this catalog type
     const supportingAddons = Array.from(this.addons.values()).filter(item => {
       // Handle both string resources and object resources
@@ -248,44 +375,105 @@ class StremioAddonClient {
       );
       return hasCatalogResource && item.manifest.types.includes(type);
     });
-    
+
     console.log(`📊 Found ${supportingAddons.length} addons supporting catalog ${type}/${id}`);
-    
+
     if (supportingAddons.length === 0) {
+      console.log(`⚠️ No addons support catalog ${type}/${id}`);
       return { metas: [] };
     }
-    
+
+    const cacheKey = `catalog:${type}:${id}:${JSON.stringify(extra)}`;
+
+    // Check cache first, but skip if nocache is requested
+    const skipCache = extra.nocache === '1' || extra.nocache === 1 || extra.nocache === true;
+    let cachedResult = null;
+
+    console.log(`🔍 Cache handling: skipCache=${skipCache}, cacheKey=${cacheKey}`);
+
+    if (!skipCache) {
+      cachedResult = this.getFromCache(cacheKey);
+      if (cachedResult) {
+        console.log(`🔄 Returning cached catalog for ${cacheKey}`);
+        return cachedResult;
+      } else {
+        console.log(`🔍 Cache miss for ${cacheKey}, fetching from addons`);
+      }
+    } else {
+      console.log(`🚫 Skipping cache for ${cacheKey} (nocache requested)`);
+      // Clear any existing cache for this key when nocache is requested
+      if (this.cache.has(cacheKey)) {
+        console.log(`🗑️ Deleting existing cache entry for ${cacheKey}`);
+        this.cache.delete(cacheKey);
+      }
+      // Force clear all catalog caches to ensure fresh data
+      console.log(`🧹 Force clearing all catalog caches`);
+      this.clearCachePattern('catalog:');
+    }
+
+    // Map requested catalog IDs to available ones in addons
+    const mappedId = this.mapCatalogId(id);
+    console.log(`🔍 Mapped catalog ID: ${id} -> ${mappedId}`);
+
+    // Log addon details for debugging
+    supportingAddons.forEach((addon, index) => {
+      const addonBaseUrl = addon.manifest.url || addonsConfig.addons.find(a => a.id === addon.manifest.id)?.url || 'no url';
+      console.log(`🔍 Addon ${index + 1}: ${addon.manifest.name} (${addonBaseUrl})`);
+      console.log(`🔍 Addon ${index + 1} manifest URL: ${addon.manifest.url || 'undefined'}`);
+      console.log(`🔍 Addon ${index + 1} config URL: ${addonsConfig.addons.find(a => a.id === addon.manifest.id)?.url || 'undefined'}`);
+    });
+
     // Collect results from all supporting addons
     const results = await Promise.allSettled(
       supportingAddons.map(async (addon) => {
         try {
-          // Use the addon client's get method with correct parameter format
-          const response = await addon.client.get('catalog', type, id, extra);
+          console.log(`🔍 Making request to ${addon.manifest.name} for catalog/${type}/${mappedId}`);
+          const response = await addon.client.get('catalog', type, mappedId, extra);
+          console.log(`✅ Response from ${addon.manifest.name}:`, response ? `${response.metas?.length || 0} items` : 'null');
           return response && response.metas ? response.metas : [];
         } catch (error) {
-          console.error(`❌ Error getting catalog from ${addon.manifest.name}:`, error);
+          console.error(`❌ Error getting catalog from ${addon.manifest.name}:`, error.message);
+          console.error(`❌ Full error:`, error);
           return [];
         }
       })
     );
-    
+
     // Combine results from all addons
     const allMetas = results
       .filter(result => result.status === 'fulfilled')
       .flatMap(result => result.value);
-    
+
     // Remove duplicates based on id
     const uniqueMetas = Array.from(
       new Map(allMetas.map(meta => [meta.id, meta])).values()
     );
-    
+
     const response = { metas: uniqueMetas };
-    
-    // Cache the results
-    this.setCache(cacheKey, response);
-    
+
+    // Cache the results if not skipping cache
+    if (!skipCache) {
+      this.setCache(cacheKey, response);
+    }
+
     console.log(`📊 Total items from external addons: ${uniqueMetas.length}`);
     return response;
+  }
+
+  /**
+   * Map catalog IDs to available ones in addons
+   * @param {string} requestedId - The requested catalog ID
+   * @returns {string} - The mapped catalog ID
+   */
+  mapCatalogId(requestedId) {
+    const idMapping = {
+      'trending': 'top',
+      'popular': 'top',
+      'new': 'year',
+      'featured': 'imdbRating'
+    };
+
+    return idMapping[requestedId] || requestedId;
   }
 
   /**
@@ -472,72 +660,109 @@ class StremioAddonClient {
  async search(args) {
    const { query } = args;
    console.log(`🔍 Searching across external addons: query=${query}`);
-   
-   // Find addons that support search
+
+   // Find addons that support catalog (most addons don't explicitly support search)
    const supportingAddons = Array.from(this.addons.values()).filter(item => {
      return item.manifest.resources.some(resource =>
        typeof resource === 'string' ? resource === 'catalog' :
-       resource.name === 'catalog' && resource.types.includes('search')
+       resource.name === 'catalog'
      );
    });
-   
-   console.log(`📊 Found ${supportingAddons.length} addons supporting search`);
-   
+
+   console.log(`📊 Found ${supportingAddons.length} addons supporting catalog search`);
+
    if (supportingAddons.length === 0) {
+     console.log('⚠️ No addons support catalog search');
      return { metas: [] };
    }
-   
+
    // Collect results from all supporting addons
    const results = await Promise.allSettled(
      supportingAddons.map(async (addon) => {
        try {
-         // Use the addon client's get method with search parameter
-         const response = await addon.client.get('catalog', 'search', '', { search: query });
-         return response && response.metas ? response.metas : [];
+         console.log(`🔍 Searching in ${addon.manifest.name}...`);
+         // Try different search approaches since most addons don't support search directly
+
+         // 1. Try catalog search with search parameter
+         try {
+           const response = await addon.client.get('catalog', 'search', '', { search: query });
+           if (response && response.metas && response.metas.length > 0) {
+             console.log(`✅ Found ${response.metas.length} results from ${addon.manifest.name} (catalog search)`);
+             return response.metas;
+           }
+         } catch (catalogSearchError) {
+           console.log(`⚠️ Catalog search not supported by ${addon.manifest.name}, trying alternative approaches...`);
+         }
+
+         // 2. Try to search through existing catalog data (this is a fallback)
+         try {
+           // Get popular/trending content and filter by query
+           const popularResponse = await addon.client.get('catalog', 'movie', 'top');
+           if (popularResponse && popularResponse.metas) {
+             const filteredResults = popularResponse.metas.filter(item =>
+               item.name && item.name.toLowerCase().includes(query.toLowerCase())
+             );
+             if (filteredResults.length > 0) {
+               console.log(`✅ Found ${filteredResults.length} filtered results from ${addon.manifest.name} (filtered popular)`);
+               return filteredResults;
+             }
+           }
+         } catch (filterError) {
+           console.log(`⚠️ Could not filter existing content from ${addon.manifest.name}`);
+         }
+
+         // 3. Return empty array if no search method works
+         return [];
        } catch (error) {
-         console.error(`❌ Error searching in ${addon.manifest.name}:`, error);
+         console.log(`⚠️ Search failed for ${addon.manifest.name}:`, error.message);
          return [];
        }
      })
    );
-   
+
    // Combine results from all addons
    const allMetas = results
      .filter(result => result.status === 'fulfilled')
      .flatMap(result => result.value);
-   
+
    // Remove duplicates based on id
    const uniqueMetas = Array.from(
      new Map(allMetas.map(meta => [meta.id, meta])).values()
    );
-   
+
    const response = { metas: uniqueMetas };
-   
+
    console.log(`📊 Total search results from external addons: ${uniqueMetas.length}`);
    return response;
  }
 
  /**
   * Get item from cache if not expired
-   * @param {string} key - Cache key
-   * @returns {object|null} - Cached item or null if not found or expired
-   */
-  getFromCache(key) {
-    if (!this.cache.has(key)) {
-      return null;
-    }
-    
-    const { timestamp, data } = this.cache.get(key);
-    const now = Date.now();
-    
-    if (now - timestamp > this.cacheExpiration) {
-      // Cache expired
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return data;
-  }
+  * @param {string} key - Cache key
+  * @returns {object|null} - Cached item or null if not found or expired
+  */
+ getFromCache(key) {
+   console.log(`🔍 Checking cache for key: ${key}`);
+   console.log(`🔍 Cache contains ${this.cache.size} entries`);
+
+   if (!this.cache.has(key)) {
+     console.log(`🔍 Cache miss: key not found`);
+     return null;
+   }
+
+   const { timestamp, data } = this.cache.get(key);
+   const now = Date.now();
+
+   if (now - timestamp > this.cacheExpiration) {
+     // Cache expired
+     console.log(`🔍 Cache expired: ${key} (age: ${now - timestamp}ms)`);
+     this.cache.delete(key);
+     return null;
+   }
+
+   console.log(`🔍 Cache hit: ${key} (age: ${now - timestamp}ms)`);
+   return data;
+ }
 
   /**
    * Set item in cache with current timestamp
@@ -557,6 +782,16 @@ class StremioAddonClient {
   clearCache() {
     this.cache.clear();
     console.log('🧹 Addon client cache cleared');
+  }
+
+  /**
+   * Clear cache for a specific key pattern
+   * @param {string} pattern - Pattern to match cache keys
+   */
+  clearCachePattern(pattern) {
+    const keysToDelete = Array.from(this.cache.keys()).filter(key => key.includes(pattern));
+    keysToDelete.forEach(key => this.cache.delete(key));
+    console.log(`🧹 Cleared ${keysToDelete.length} cache entries matching pattern: ${pattern}`);
   }
 }
 

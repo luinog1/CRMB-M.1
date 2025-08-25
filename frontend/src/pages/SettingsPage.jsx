@@ -153,34 +153,19 @@ const SettingsPage = () => {
   };
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newAddonData, setNewAddonData] = useState({
-    name: '',
-    url: '',
-    type: 'both',
-    description: ''
-  });
+  const [newAddonUrl, setNewAddonUrl] = useState('');
   const [isInstalling, setIsInstalling] = useState(false);
   const [installProgress, setInstallProgress] = useState('');
 
   const handleAddAddon = () => {
     console.log('➕ Opening add addon modal');
     setShowAddModal(true);
-    setNewAddonData({
-      name: '',
-      url: '',
-      type: 'both',
-      description: ''
-    });
+    setNewAddonUrl('');
     setError(null);
   };
 
   const handleInstallAddonFromForm = async () => {
-    if (!newAddonData.name.trim()) {
-      setError('Addon name is required');
-      return;
-    }
-
-    if (!newAddonData.url.trim()) {
+    if (!newAddonUrl.trim()) {
       setError('Addon URL is required');
       return;
     }
@@ -191,25 +176,28 @@ const SettingsPage = () => {
       setInstallProgress('Validating addon URL...');
 
       // Validate URL format
-      let formattedUrl = newAddonData.url.trim();
+      let formattedUrl = newAddonUrl.trim();
       if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
         setInstallProgress('Adding https:// prefix...');
         formattedUrl = `https://${formattedUrl}`;
       }
 
       setInstallProgress('Testing addon manifest...');
-      console.log(`🔍 Installing addon: ${newAddonData.name} from ${formattedUrl}`);
+      console.log(`🔍 Installing addon from: ${formattedUrl}`);
 
-      // Test manifest first
-      const manifestResponse = await fetch(`${formattedUrl}/manifest.json`);
+      // Test manifest first using the backend proxy
+      const manifestResponse = await fetch(`/api/stremio/manifest?url=${encodeURIComponent(formattedUrl)}`);
       if (!manifestResponse.ok) {
         throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`);
       }
 
-      const manifest = await manifestResponse.json();
-      if (!manifest.name || !manifest.resources || !manifest.types) {
-        throw new Error('Invalid addon manifest structure');
+      const validationResult = await manifestResponse.json();
+      if (!validationResult.success || !validationResult.validation.valid) {
+        const errors = validationResult.validation?.errors || ['Invalid addon manifest'];
+        throw new Error(`Invalid addon: ${errors.join(', ')}`);
       }
+
+      const manifest = validationResult.validation.manifest;
 
       setInstallProgress('Installing addon...');
       const response = await ApiService.installAddon(formattedUrl);
@@ -217,8 +205,9 @@ const SettingsPage = () => {
       if (response && response.success !== false) {
         console.log('✅ Addon installed successfully');
         setAddons(prevAddons => [...prevAddons, {
-          ...newAddonData,
-          id: response.addon?.id || `addon-${Date.now()}`,
+          ...manifest,
+          id: response.addon?.id || manifest.id || `addon-${Date.now()}`,
+          url: formattedUrl,
           enabled: true,
           contentCount: 0,
           status: 'active'
@@ -226,8 +215,9 @@ const SettingsPage = () => {
 
         // Save to localStorage
         const updatedAddons = [...addons, {
-          ...newAddonData,
-          id: response.addon?.id || `addon-${Date.now()}`,
+          ...manifest,
+          id: response.addon?.id || manifest.id || `addon-${Date.now()}`,
+          url: formattedUrl,
           enabled: true,
           contentCount: 0,
           status: 'active'
@@ -654,55 +644,25 @@ const SettingsPage = () => {
           ])
         ]),
 
-        // Form Fields
-        React.createElement('div', { key: 'form-group-name', className: 'form-group' }, [
-          React.createElement('label', { key: 'label' }, 'Name *'),
-          React.createElement('input', {
-            key: 'input',
-            type: 'text',
-            value: newAddonData.name,
-            onChange: (e) => setNewAddonData({...newAddonData, name: e.target.value}),
-            placeholder: 'e.g., Cinemeta, OpenSubtitles',
-            disabled: isInstalling
-          })
-        ]),
-
+        // Form Field - URL only
         React.createElement('div', { key: 'form-group-url', className: 'form-group' }, [
-          React.createElement('label', { key: 'label' }, 'URL *'),
+          React.createElement('label', { key: 'label' }, 'Addon URL *'),
           React.createElement('input', {
             key: 'input',
             type: 'url',
-            value: newAddonData.url,
-            onChange: (e) => setNewAddonData({...newAddonData, url: e.target.value}),
+            value: newAddonUrl,
+            onChange: (e) => setNewAddonUrl(e.target.value),
             placeholder: 'https://v3-cinemeta.strem.io',
             disabled: isInstalling
-          })
-        ]),
-
-        React.createElement('div', { key: 'form-group-type', className: 'form-group' }, [
-          React.createElement('label', { key: 'label' }, 'Type'),
-          React.createElement('select', {
-            key: 'select',
-            value: newAddonData.type,
-            onChange: (e) => setNewAddonData({...newAddonData, type: e.target.value}),
-            disabled: isInstalling
-          }, [
-            React.createElement('option', { key: 'both', value: 'both' }, 'Movies & TV Shows'),
-            React.createElement('option', { key: 'movies', value: 'movies' }, 'Movies Only'),
-            React.createElement('option', { key: 'tv', value: 'tv' }, 'TV Shows Only')
-          ])
-        ]),
-
-        React.createElement('div', { key: 'form-group-desc', className: 'form-group' }, [
-          React.createElement('label', { key: 'label' }, 'Description'),
-          React.createElement('input', {
-            key: 'input',
-            type: 'text',
-            value: newAddonData.description,
-            onChange: (e) => setNewAddonData({...newAddonData, description: e.target.value}),
-            placeholder: 'Brief description of the addon',
-            disabled: isInstalling
-          })
+          }),
+          React.createElement('div', {
+            key: 'help-text',
+            style: {
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              marginTop: '4px'
+            }
+          }, 'Enter the URL to the addon manifest (e.g., https://v3-cinemeta.strem.io)')
         ])
       ]),
 
@@ -725,7 +685,7 @@ const SettingsPage = () => {
           key: 'add',
           onClick: handleInstallAddonFromForm,
           className: 'btn btn-primary',
-          disabled: isInstalling || !newAddonData.name.trim() || !newAddonData.url.trim()
+          disabled: isInstalling || !newAddonUrl.trim()
         }, isInstalling ? 'Installing...' : 'Add Addon')
       ])
     ]));

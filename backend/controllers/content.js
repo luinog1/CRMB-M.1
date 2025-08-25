@@ -239,19 +239,18 @@ const searchContent = async (req, res) => {
     const allAddons = addonClient.getAddons();
     console.log(`📊 Found ${allAddons.length} total addons for search`);
 
-    // Try searching through catalog for each addon that supports catalog
-    for (const addon of allAddons) {
-      if (addon.resources && addon.resources.includes('catalog')) {
-        try {
-          console.log(`🔍 Searching in ${addon.name}...`);
-          const searchResults = await addonClient.client.get('catalog', type, 'search', { search: query });
-          if (searchResults && searchResults.metas && searchResults.metas.length > 0) {
-            searchData.push(...searchResults.metas);
-          }
-        } catch (addonError) {
-          console.warn(`⚠️ Search failed for ${addon.name}:`, addonError.message);
-        }
+    // Use the addonClient's unified search method
+    try {
+      console.log('🔍 Using unified addon search...');
+      const addonSearchResults = await addonClient.search({ query });
+      if (addonSearchResults && addonSearchResults.metas && addonSearchResults.metas.length > 0) {
+        searchData.push(...addonSearchResults.metas);
+        console.log(`✅ Found ${addonSearchResults.metas.length} results from unified search`);
+      } else {
+        console.log('⚠️ No results from unified addon search');
       }
+    } catch (searchError) {
+      console.warn('⚠️ Unified addon search failed:', searchError.message);
     }
 
     // Remove duplicates based on id

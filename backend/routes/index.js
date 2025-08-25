@@ -7,6 +7,7 @@ const traktRoutes = require('./trakt');
 const stremioRoutes = require('./stremio');
 const contentRoutes = require('./content');
 const addonRoutes = require('./addon');
+const manifestRoutes = require('./manifest');
 const mdblistRoutes = require('./mdblist');
 
 // Direct test endpoint
@@ -21,6 +22,7 @@ router.use('/trakt', traktRoutes);
 router.use('/stremio', stremioRoutes);
 router.use('/content', contentRoutes);
 router.use('/addons', addonRoutes);
+router.use('/manifest', manifestRoutes);
 router.use('/mdblist', mdblistRoutes);
 
 module.exports = router;
